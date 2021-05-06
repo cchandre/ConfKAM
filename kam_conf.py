@@ -5,11 +5,11 @@ import warnings
 warnings.filterwarnings("ignore")
 
 def main():
-	# dict_params = {
-	# 	'n': 2 ** 10,
-	# 	'omega0': [0.618033988749895, -1.0],
-	# 	'Omega': [1.0, 0.0],
-	# 	'potential': 'pot1_2d'}
+	dict_params = {
+		'n': 2 ** 10,
+		'omega0': [0.618033988749895, -1.0],
+		'Omega': [1.0, 0.0],
+		'potential': 'pot1_2d'}
 	# dict_params = {
 	# 	'n': 2 ** 10,
 	# 	'omega0': [0.414213562373095, -1.0],
@@ -20,21 +20,21 @@ def main():
 	# 	'omega0': [0.302775637731995, -1.0],
 	# 	'Omega': [1.0, 0.0],
 	# 	'potential': 'pot1_2d'}
-	# dict_params.update({
-	# 	'eps_n': 512,
-	# 	'eps_region': [[0.0, 0.35], [0.0, 0.12]],
-	# 	'eps_indx': [0, 1],
-	# 	'eps_type': 'cartesian'})
-	dict_params = {
-		'n': 2 ** 8,
-		'omega0': [1.324717957244746, 1.754877666246693, 1.0],
-		'Omega': [1.0, 1.0, -1.0],
-		'potential': 'pot1_3d'}
 	dict_params.update({
 		'eps_n': 512,
-		'eps_region': [[0.0, 0.15], [0.0,  0.40], [0.1, 0.1]],
+		'eps_region': [[0.0, 0.35], [0.0, 0.12]],
 		'eps_indx': [0, 1],
 		'eps_type': 'cartesian'})
+	# dict_params = {
+	# 	'n': 2 ** 7,
+	# 	'omega0': [1.324717957244746, 1.754877666246693, 1.0],
+	# 	'Omega': [1.0, 1.0, -1.0],
+	# 	'potential': 'pot1_3d'}
+	# dict_params.update({
+	# 	'eps_n': 512,
+	# 	'eps_region': [[0.0, 0.15], [0.0,  0.40], [0.1, 0.1]],
+	# 	'eps_indx': [0, 1],
+	# 	'eps_type': 'cartesian'})
 	dict_params.update({
 		'tolmax': 1e2,
 		'tolmin': 1e-6,
@@ -49,7 +49,6 @@ def main():
 		'pot1_3d': lambda phi, eps, Omega: - Omega[0] * eps[0] * xp.sin(phi[0]) - Omega[1] * eps[1] * xp.sin(phi[1]) - Omega[2] * eps[2] * xp.sin(phi[2])
 		}.get(dict_params['potential'], 'pot1_2d')
 	case = ConfKAM(dv, dict_params)
-	# data = cv.line(case.eps_region, case, method='critical', display=True)
 	data = cv.region(case)
 
 
@@ -92,15 +91,15 @@ class ConfKAM:
 		fft_l = 1j * self.Omega_nu *fft_h
 		fft_l[self.zero_] = self.rescale_fft
 		lfunc = ifftn(fft_l)
-		epsilon = ifftn(self.lk * fft_h) + lam + self.dv(arg_v, eps, self.Omega)
+		epsilon = ifftn(self.lk * fft_h) + self.dv(arg_v, eps, self.Omega) + lam
 		fft_leps = fftn(lfunc * epsilon)
 		delta = - fft_leps[self.zero_] / fft_l[self.zero_]
 		w = ifftn((delta * fft_l + fft_leps) * self.sml_div)
 		fft_wll = fftn(w / lfunc ** 2)
 		fft_ill = fftn(1.0 / lfunc ** 2)
 		w0 = - fft_wll[self.zero_] / fft_ill[self.zero_]
-		beta = ifftn((fft_wll + w0 * fft_ill) * self.sml_div.conj()) * lfunc
-		h = xp.real(h_thresh + beta - xp.mean(beta) * lfunc / xp.mean(lfunc))
+		beta = ifftn((fft_wll + w0 * fft_ill) * self.sml_div.conj())
+		h = xp.real(h_thresh + beta * lfunc - xp.mean(beta * lfunc) * lfunc)
 		lam = xp.real(lam + delta)
 		arg_v = self.phi + xp.tensordot(self.Omega, h, axes=0)
 		err = xp.abs(ifftn(self.lk * fftn(h)) + lam + self.dv(arg_v, eps, self.Omega)).max()
