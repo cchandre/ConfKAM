@@ -66,9 +66,8 @@ def line(epsilon, case, getnorm=[False, 0], method=[], display=False):
             if (result[0] == 1) and case.choice_initial == 'continuation':
                 h = h_.copy()
                 lam = lam_
-            else:
-                h = []
-                lam = []
+            elif case.choice_initial == 'fixed':
+                h, lam = case.initial_h(eps)
             results.append(result)
         return xp.array(results)[:, 0], xp.array(results)[:, 1]
 
