@@ -63,7 +63,7 @@ def line(epsilon, case, getnorm=[False, 0], method=[], display=False):
         results = []
         for eps in epsilon:
             result, h_, lam_ = point(eps, case, h=h, lam=lam)
-            if result[0] == 1:
+            if (result[0] == 1) and case.choice_initial == 'continuation':
                 h = h_.copy()
                 lam = lam_
             else:

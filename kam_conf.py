@@ -5,16 +5,16 @@ import warnings
 warnings.filterwarnings("ignore")
 
 def main():
-	dict_params = {
-		'n': 2 ** 10,
-		'omega0': [0.618033988749895, -1.0],
-		'Omega': [1.0, 0.0],
-		'potential': 'pot1_2d'}
 	# dict_params = {
 	# 	'n': 2 ** 10,
-	# 	'omega0': [0.414213562373095, -1.0],
+	# 	'omega0': [0.618033988749895, -1.0],
 	# 	'Omega': [1.0, 0.0],
 	# 	'potential': 'pot1_2d'}
+	dict_params = {
+		'n': 2 ** 10,
+		'omega0': [0.414213562373095, -1.0],
+		'Omega': [1.0, 0.0],
+		'potential': 'pot1_2d'}
 	# dict_params = {
 	# 	'n': 2 ** 10,
 	# 	'omega0': [0.302775637731995, -1.0],
@@ -22,7 +22,7 @@ def main():
 	# 	'potential': 'pot1_2d'}
 	dict_params.update({
 		'eps_n': 512,
-		'eps_region': [[0.0, 0.35], [0.0, 0.12]],
+		'eps_region': [[0.0, 0.12], [0.0, 0.225]],
 		'eps_indx': [0, 1],
 		'eps_type': 'cartesian'})
 	# dict_params = {
@@ -42,6 +42,7 @@ def main():
 		'maxiter': 50,
 		'threshold': 1e-7,
 		'precision': 64,
+		'choice_initial': 'fixed',
 		'save_results': True,
 		'plot_results': True})
 	dv = {
