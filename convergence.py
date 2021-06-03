@@ -61,14 +61,22 @@ def line(epsilon, case, getnorm=[False, 0], method=[], display=False):
     else:
         h, lam = case.initial_h(epsilon[0])
         results = []
+        resultnorm = []
         for eps in epsilon:
             result, h_, lam_ = point(eps, case, h=h, lam=lam)
+            if getnorm[0]:
+                resultnorm.append(case.norms(h_, getnorm[1]))
             if (result[0] == 1) and case.choice_initial == 'continuation':
                 h = h_.copy()
                 lam = lam_
             elif case.choice_initial == 'fixed':
                 h, lam = case.initial_h(eps)
             results.append(result)
+        if getnorm[0]:
+            save_data('line_norm', xp.array(resultnorm), time.strftime("%Y%m%d_%H%M"), case)
+            plt.plot(xp.array(resultnorm))
+            plt.show()
+            return xp.array(resultnorm)
         return xp.array(results)[:, 0], xp.array(results)[:, 1]
 
 

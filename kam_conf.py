@@ -1,20 +1,21 @@
 import numpy as xp
+from numpy import linalg as LA
 from numpy.fft import fftn, ifftn, fftfreq
 import convergence as cv
 import warnings
 warnings.filterwarnings("ignore")
 
 def main():
-	# dict_params = {
-	# 	'n': 2 ** 10,
-	# 	'omega0': [0.618033988749895, -1.0],
-	# 	'Omega': [1.0, 0.0],
-	# 	'potential': 'pot1_2d'}
 	dict_params = {
-		'n': 2 ** 10,
-		'omega0': [0.414213562373095, -1.0],
+		'n': 2 ** 12,
+		'omega0': [0.618033988749895, -1.0],
 		'Omega': [1.0, 0.0],
 		'potential': 'pot1_2d'}
+	# dict_params = {
+	# 	'n': 2 ** 10,
+	# 	'omega0': [0.414213562373095, -1.0],
+	# 	'Omega': [1.0, 0.0],
+	# 	'potential': 'pot1_2d'}
 	# dict_params = {
 	# 	'n': 2 ** 10,
 	# 	'omega0': [0.302775637731995, -1.0],
@@ -22,9 +23,9 @@ def main():
 	# 	'potential': 'pot1_2d'}
 	dict_params.update({
 		'eps_n': 512,
-		'eps_region': [[0.0, 0.12], [0.0, 0.225]],
+		'eps_region': [[0.0, 0.04], [xp.pi/4, xp.pi/4]],
 		'eps_indx': [0, 1],
-		'eps_type': 'cartesian'})
+		'eps_type': 'polar'})
 	# dict_params = {
 	# 	'n': 2 ** 7,
 	# 	'omega0': [1.324717957244746, 1.754877666246693, 1.0],
@@ -36,13 +37,13 @@ def main():
 	# 	'eps_indx': [0, 1],
 	# 	'eps_type': 'cartesian'})
 	dict_params.update({
-		'tolmax': 1e2,
-		'tolmin': 1e-6,
+		'tolmax': 1e4,
+		'tolmin': 1e-8,
 		'dist_surf': 1e-5,
 		'maxiter': 50,
 		'threshold': 1e-7,
 		'precision': 64,
-		'choice_initial': 'fixed',
+		'choice_initial': 'continuation',
 		'save_results': True,
 		'plot_results': True})
 	dv = {
@@ -50,7 +51,16 @@ def main():
 		'pot1_3d': lambda phi, eps, Omega: - Omega[0] * eps[0] * xp.sin(phi[0]) - Omega[1] * eps[1] * xp.sin(phi[1]) - Omega[2] * eps[2] * xp.sin(phi[2])
 		}.get(dict_params['potential'], 'pot1_2d')
 	case = ConfKAM(dv, dict_params)
-	data = cv.region(case)
+	# data = cv.region(case)
+	eps_region = xp.array(case.eps_region)
+	theta = eps_region[1, 0]
+	radii = xp.linspace(eps_region[0, 0], eps_region[0, 1], case.eps_n)
+	epsilon = xp.zeros((case.eps_n, len(eps_region[:, 0])))
+	epsilon[:, 0] = radii * xp.cos(theta)
+	epsilon[:, 1] = radii * xp.sin(theta)
+	if len(eps_region[:, 0]) >= 3:
+		epsilon[:, 2:] = eps_region[2:, 0]
+	datanorm = cv.line(epsilon,case, [True, 4])
 
 
 class ConfKAM:
@@ -71,6 +81,7 @@ class ConfKAM:
 		self.zero_ = dim * (0,)
 		ind_nu = dim * (fftfreq(self.n, d=1.0/self.precision(self.n)),)
 		nu = xp.meshgrid(*ind_nu, indexing='ij')
+		self.norm_nu = LA.norm(nu, axis=0)
 		self.omega0_nu = xp.einsum('i,i...->...', self.omega0, nu)
 		self.Omega = xp.array(self.Omega, dtype=self.precision)
 		self.Omega_nu = xp.einsum('i,i...->...', self.Omega, nu)
@@ -107,7 +118,8 @@ class ConfKAM:
 		return h, lam, err
 
 	def norms(self, h, r=0):
-		return [xp.sqrt(xp.abs(ifftn(self.omega0_nu ** r * fftn(h)) ** 2).sum()), xp.sqrt(xp.abs(ifftn(self.Omega_nu ** r * fftn(h)) ** 2).sum())]
+		ffth = fftn(h)
+		return [xp.sqrt(((1.0 + self.norm_nu ** 2) ** r * xp.abs(ffth) ** 2).sum()), xp.sqrt(xp.abs(ifftn(self.omega0_nu ** r * ffth) ** 2).sum()), xp.sqrt(xp.abs(ifftn(self.Omega_nu ** r * ffth) ** 2).sum())]
 
 if __name__ == "__main__":
 	main()
