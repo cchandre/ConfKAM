@@ -9,39 +9,37 @@ def main():
 	dict_params = {
 		'n': 2 ** 8,
 		'omega0': [0.618033988749895, -1.0],
+		# 'eps_region': [[0, 0.35], [0, 0.12]],
+		'eps_region': [[0.0, 0.04], [xp.pi/4, xp.pi/4]],
 		'Omega': [1.0, 0.0],
 		'potential': 'pot1_2d'}
 	# dict_params = {
 	# 	'n': 2 ** 10,
 	# 	'omega0': [0.414213562373095, -1.0],
+	# 	'eps_region': [[0, 0.12], [0, 0.225]],
 	# 	'Omega': [1.0, 0.0],
 	# 	'potential': 'pot1_2d'}
 	# dict_params = {
 	# 	'n': 2 ** 10,
 	# 	'omega0': [0.302775637731995, -1.0],
+	# 	'eps_region': [[0, 0.06], [0, 0.2]],
 	# 	'Omega': [1.0, 0.0],
 	# 	'potential': 'pot1_2d'}
-	dict_params.update({
-		'eps_n': 512,
-		'eps_region': [[0.0, 0.04], [xp.pi/4, xp.pi/4]],
-		'eps_indx': [0, 1],
-		'eps_type': 'polar'})
 	# dict_params = {
 	# 	'n': 2 ** 7,
 	# 	'omega0': [1.324717957244746, 1.754877666246693, 1.0],
+	# 	'eps_region': [[0.0, 0.15], [0.0,  0.40], [0.1, 0.1]],
 	# 	'Omega': [1.0, 1.0, -1.0],
 	# 	'potential': 'pot1_3d'}
-	# dict_params.update({
-	# 	'eps_n': 512,
-	# 	'eps_region': [[0.0, 0.15], [0.0,  0.40], [0.1, 0.1]],
-	# 	'eps_indx': [0, 1],
-	# 	'eps_type': 'cartesian'})
 	dict_params.update({
+		'eps_n': 512,
+		'eps_indx': [0, 1],
+		'eps_type': 'cartesian',
 		'tolmax': 1e30,
-		'tolmin': 1e-8,
-		'dist_surf': 1e-5,
-		'maxiter': 500,
+		'tolmin': 1e-12,
+		'maxiter': 100,
 		'threshold': 1e-7,
+		'dist_surf': 1e-5,
 		'precision': 64,
 		'choice_initial': 'continuation',
 		'save_results': True,
