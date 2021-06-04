@@ -16,7 +16,7 @@ def save_data(name, data, timestr, case, info=[]):
         savemat(type(case).__name__ + '_' + name + '_' + timestr + '.mat', mdic)
 
 
-def point(eps, case, h=[], lam=[], gethull=False, getnorm=[False, 0]):
+def point(eps, case, h=[], lam=[], gethull=False):
     h_ = h.copy()
     lam_ = lam
     if len(h_) == 0:
@@ -31,8 +31,6 @@ def point(eps, case, h=[], lam=[], gethull=False, getnorm=[False, 0]):
     if gethull:
         timestr = time.strftime("%Y%m%d_%H%M")
         save_data('hull', h_, timestr, case)
-    if getnorm[0]:
-        return [int(err <= case.tolmin), it_count], h_, lam_, case.norms(h_, getnorm[1])
     return [int(err <= case.tolmin), it_count], h_, lam_
 
 
@@ -73,7 +71,7 @@ def line(epsilon, case, getnorm=[False, 0], method=[], display=False):
                 h, lam = case.initial_h(eps)
             results.append(result)
         if getnorm[0]:
-            save_data('line_norm', xp.array(resultnorm), time.strftime("%Y%m%d_%H%M"), case)
+            save_data('line_norm', xp.array(resultnorm), time.strftime("%Y%m%d_%H%M"), case, info=epsilon)
             plt.plot(xp.array(resultnorm))
             plt.show()
             return xp.array(resultnorm)

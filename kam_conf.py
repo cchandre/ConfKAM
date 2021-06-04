@@ -7,7 +7,7 @@ warnings.filterwarnings("ignore")
 
 def main():
 	dict_params = {
-		'n': 2 ** 12,
+		'n': 2 ** 8,
 		'omega0': [0.618033988749895, -1.0],
 		'Omega': [1.0, 0.0],
 		'potential': 'pot1_2d'}
@@ -37,10 +37,10 @@ def main():
 	# 	'eps_indx': [0, 1],
 	# 	'eps_type': 'cartesian'})
 	dict_params.update({
-		'tolmax': 1e4,
+		'tolmax': 1e30,
 		'tolmin': 1e-8,
 		'dist_surf': 1e-5,
-		'maxiter': 50,
+		'maxiter': 500,
 		'threshold': 1e-7,
 		'precision': 64,
 		'choice_initial': 'continuation',
