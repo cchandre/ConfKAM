@@ -60,7 +60,7 @@ def line(epsilon, case, getnorm=[False, 0], method=[], display=False):
         h, lam = case.initial_h(epsilon[0])
         results = []
         resultnorm = []
-        for eps in epsilon:
+        for eps in tqdm(epsilon, disable=not display):
             result, h_, lam_ = point(eps, case, h=h, lam=lam)
             if getnorm[0]:
                 resultnorm.append(case.norms(h_, getnorm[1]))

@@ -7,7 +7,7 @@ warnings.filterwarnings("ignore")
 
 def main():
 	dict_params = {
-		'n': 2 ** 8,
+		'n': 2 ** 10,
 		'omega0': [0.618033988749895, -1.0],
 		# 'eps_region': [[0, 0.35], [0, 0.12]],
 		'eps_region': [[0.0, 0.04], [xp.pi/4, xp.pi/4]],
@@ -32,13 +32,13 @@ def main():
 	# 	'Omega': [1.0, 1.0, -1.0],
 	# 	'potential': 'pot1_3d'}
 	dict_params.update({
-		'eps_n': 512,
+		'eps_n': 256,
 		'eps_indx': [0, 1],
 		'eps_type': 'cartesian',
-		'tolmax': 1e30,
-		'tolmin': 1e-12,
-		'maxiter': 100,
-		'threshold': 1e-7,
+		'tolmax': 1e15,
+		'tolmin': 1e-8,
+		'maxiter': 30,
+		'threshold': 1e-5,
 		'dist_surf': 1e-5,
 		'precision': 64,
 		'choice_initial': 'continuation',
@@ -58,7 +58,7 @@ def main():
 	epsilon[:, 1] = radii * xp.sin(theta)
 	if len(eps_region[:, 0]) >= 3:
 		epsilon[:, 2:] = eps_region[2:, 0]
-	datanorm = cv.line(epsilon,case, [True, 4])
+	datanorm = cv.line(epsilon,case, [True, 4], display=True)
 
 
 class ConfKAM:
@@ -116,7 +116,7 @@ class ConfKAM:
 		return h, lam, err
 
 	def norms(self, h, r=0):
-		ffth = fftn(h)
+		ffth = fftn(h) / self.rescale_fft
 		return [xp.sqrt(((1.0 + self.norm_nu ** 2) ** r * xp.abs(ffth) ** 2).sum()), xp.sqrt(xp.abs(ifftn(self.omega0_nu ** r * ffth) ** 2).sum()), xp.sqrt(xp.abs(ifftn(self.Omega_nu ** r * ffth) ** 2).sum())]
 
 if __name__ == "__main__":

@@ -1,3 +1,4 @@
 
 *.mat
 *.pyc
+.DS_Store
