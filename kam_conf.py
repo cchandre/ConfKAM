@@ -7,41 +7,39 @@ warnings.filterwarnings("ignore")
 
 def main():
 	dict_params = {
-		'n': 2 ** 12,
+		'n': 2 ** 10,
 		'omega0': [0.618033988749895, -1.0],
+		# 'eps_region': [[0, 0.35], [0, 0.12]],
+		'eps_region': [[0.0, 0.04], [xp.pi/4, xp.pi/4]],
 		'Omega': [1.0, 0.0],
 		'potential': 'pot1_2d'}
 	# dict_params = {
 	# 	'n': 2 ** 10,
 	# 	'omega0': [0.414213562373095, -1.0],
+	# 	'eps_region': [[0, 0.12], [0, 0.225]],
 	# 	'Omega': [1.0, 0.0],
 	# 	'potential': 'pot1_2d'}
 	# dict_params = {
 	# 	'n': 2 ** 10,
 	# 	'omega0': [0.302775637731995, -1.0],
+	# 	'eps_region': [[0, 0.06], [0, 0.2]],
 	# 	'Omega': [1.0, 0.0],
 	# 	'potential': 'pot1_2d'}
-	dict_params.update({
-		'eps_n': 512,
-		'eps_region': [[0.0, 0.04], [xp.pi/4, xp.pi/4]],
-		'eps_indx': [0, 1],
-		'eps_type': 'polar'})
 	# dict_params = {
 	# 	'n': 2 ** 7,
 	# 	'omega0': [1.324717957244746, 1.754877666246693, 1.0],
+	# 	'eps_region': [[0.0, 0.15], [0.0,  0.40], [0.1, 0.1]],
 	# 	'Omega': [1.0, 1.0, -1.0],
 	# 	'potential': 'pot1_3d'}
-	# dict_params.update({
-	# 	'eps_n': 512,
-	# 	'eps_region': [[0.0, 0.15], [0.0,  0.40], [0.1, 0.1]],
-	# 	'eps_indx': [0, 1],
-	# 	'eps_type': 'cartesian'})
 	dict_params.update({
-		'tolmax': 1e4,
+		'eps_n': 256,
+		'eps_indx': [0, 1],
+		'eps_type': 'cartesian',
+		'tolmax': 1e15,
 		'tolmin': 1e-8,
+		'maxiter': 30,
+		'threshold': 1e-5,
 		'dist_surf': 1e-5,
-		'maxiter': 50,
-		'threshold': 1e-7,
 		'precision': 64,
 		'choice_initial': 'continuation',
 		'save_results': True,
@@ -60,7 +58,7 @@ def main():
 	epsilon[:, 1] = radii * xp.sin(theta)
 	if len(eps_region[:, 0]) >= 3:
 		epsilon[:, 2:] = eps_region[2:, 0]
-	datanorm = cv.line(epsilon,case, [True, 4])
+	datanorm = cv.line(epsilon,case, [True, 4], display=True)
 
 
 class ConfKAM:
@@ -118,7 +116,7 @@ class ConfKAM:
 		return h, lam, err
 
 	def norms(self, h, r=0):
-		ffth = fftn(h)
+		ffth = fftn(h) / self.rescale_fft
 		return [xp.sqrt(((1.0 + self.norm_nu ** 2) ** r * xp.abs(ffth) ** 2).sum()), xp.sqrt(xp.abs(ifftn(self.omega0_nu ** r * ffth) ** 2).sum()), xp.sqrt(xp.abs(ifftn(self.Omega_nu ** r * ffth) ** 2).sum())]
 
 if __name__ == "__main__":
