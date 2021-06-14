@@ -19,8 +19,8 @@ def save_data(name, data, timestr, case, info=[]):
 def point(eps, case, h=[], lam=[], gethull=False):
     h_ = h.copy()
     lam_ = lam
-    if len(h_) == 0:
-        h_, lam_ = case.initial_h(eps)
+    # if len(h_) == 0:
+    #     h_, lam_ = case.initial_h(eps)
     err = 1.0
     it_count = 0
     while (case.tolmax >= err >= case.tolmin) and (it_count <= case.maxiter):

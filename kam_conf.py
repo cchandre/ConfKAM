@@ -8,10 +8,10 @@ warnings.filterwarnings("ignore")
 
 def main():
 	dict_params = {
-		'n': 2 ** 10,
+		'n': 2 ** 12,
 		'omega0': [0.618033988749895, -1.0],
 		# 'eps_region': [[0, 0.35], [0, 0.12]],
-		'eps_region': [[0.011, 0.03], [0.011, 0.03]],
+		'eps_region': [[0.0, 0.03], [0.0, 0.03]],
 		'eps_dir': [1, 1],
 		'Omega': [1.0, 0.0],
 		'potential': 'pot1_2d'}
@@ -37,14 +37,14 @@ def main():
 		'eps_n': 256,
 		'eps_indx': [0, 1],
 		'eps_type': 'cartesian',
-		'tolmax': 1e15,
-		'tolmin': 1e-10,
-		'maxiter': 100,
-		'threshold': 1e-6,
+		'tolmax': 1e100,
+		'tolmin': 1e-6,
+		'maxiter': 200,
+		'threshold': 1e-9,
 		'dist_surf': 1e-5,
 		'precision': 64,
 		'choice_initial': 'continuation',
-		'save_results': True,
+		'save_results': False,
 		'plot_results': True})
 	dv = {
 		'pot1_2d': lambda phi, eps, Omega: Omega[0] * eps[0] * xp.sin(phi[0]) + eps[1] * (Omega[0] + Omega[1]) * xp.sin(phi[0] + phi[1]),
@@ -62,32 +62,38 @@ def main():
 	# 	epsilon[:, 2:] = eps_region[2:, 0]
 	# datanorm = cv.line(epsilon,case, [True, 4], display=True)
 
-	deps0 = 1e-5
 	eps_region = xp.array(case.eps_region)
 	eps_dir = xp.array(case.eps_dir)
 	epsilon0 = eps_region[0, 0]
-	epsvec = epsilon0 * eps_dir + eps_region[:, 0]
+	epsvec = epsilon0 * eps_dir + eps_region[:, 0] * (1 - eps_dir)
 	h, lam = case.initial_h(epsvec)
-	deps = deps0
+	deps = 1e-3
 	resultnorm = []
 	while epsilon0 <= eps_region[0, 1]:
 		epsilon = epsilon0 + deps
-		epsvec = epsilon * eps_dir + eps_region[:, 0] * (1-eps_dir)
+		epsvec = epsilon * eps_dir + eps_region[:, 0] * (1 - eps_dir)
 		result, h_, lam_ = cv.point(epsvec, case, h, lam)
-		while result[0] != 1 and deps >= case.tolmin:
-			deps /= 10.0
-			epsilon = epsilon0 + deps
-			epsvec = epsilon * eps_dir + eps_region[:, 0]
-			result, h_, lam_ = cv.point(epsvec, case, h, lam)
 		if result[0] == 1:
-			deps = deps0
 			h = h_.copy()
 			lam = lam_
 			epsilon0 = epsilon
 			resultnorm.append([epsilon0, case.norms(h, 4)])
-			print([epsilon, case.norms(h, 4)[0]])
+			print([epsilon0, case.norms(h, 4)[0]])
 		else:
-			epsilon0 = eps_region[0, 1] + deps0
+			result_temp = [0, 0]
+			while result_temp[0] == 0 and deps >= case.tolmin:
+				deps = deps / 10.0
+				epsilon = epsilon0 + deps
+				epsvec_t = epsilon * eps_dir + eps_region[:, 0] * (1 - eps_dir)
+				result_temp, h_, lam_ = cv.point(epsvec_t, case, h, lam)
+			if result_temp[0] == 1:
+				h = h_.copy()
+				lam = lam_
+				epsilon0 = epsilon
+				resultnorm.append([epsilon0, case.norms(h, 4)])
+				print([epsilon0, case.norms(h, 4)[0]])
+			else:
+				epsilon0 = eps_region[0, 1] + deps
 	if case.save_results:
 		cv.save_data('line_norm', xp.array(resultnorm), time.strftime("%Y%m%d_%H%M"), case)
 
