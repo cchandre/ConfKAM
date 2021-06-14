@@ -2,6 +2,7 @@ import numpy as xp
 from numpy import linalg as LA
 from numpy.fft import fftn, ifftn, fftfreq
 import convergence as cv
+import time
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -10,7 +11,8 @@ def main():
 		'n': 2 ** 10,
 		'omega0': [0.618033988749895, -1.0],
 		# 'eps_region': [[0, 0.35], [0, 0.12]],
-		'eps_region': [[0.0, 0.04], [xp.pi/4, xp.pi/4]],
+		'eps_region': [[0.011, 0.03], [0.011, 0.03]],
+		'eps_dir': [1, 1],
 		'Omega': [1.0, 0.0],
 		'potential': 'pot1_2d'}
 	# dict_params = {
@@ -36,9 +38,9 @@ def main():
 		'eps_indx': [0, 1],
 		'eps_type': 'cartesian',
 		'tolmax': 1e15,
-		'tolmin': 1e-8,
-		'maxiter': 30,
-		'threshold': 1e-5,
+		'tolmin': 1e-10,
+		'maxiter': 100,
+		'threshold': 1e-6,
 		'dist_surf': 1e-5,
 		'precision': 64,
 		'choice_initial': 'continuation',
@@ -50,15 +52,44 @@ def main():
 		}.get(dict_params['potential'], 'pot1_2d')
 	case = ConfKAM(dv, dict_params)
 	# data = cv.region(case)
+	# eps_region = xp.array(case.eps_region)
+	# theta = eps_region[1, 0]
+	# radii = xp.linspace(eps_region[0, 0], eps_region[0, 1], case.eps_n)
+	# epsilon = xp.zeros((case.eps_n, len(eps_region[:, 0])))
+	# epsilon[:, 0] = radii * xp.cos(theta)
+	# epsilon[:, 1] = radii * xp.sin(theta)
+	# if len(eps_region[:, 0]) >= 3:
+	# 	epsilon[:, 2:] = eps_region[2:, 0]
+	# datanorm = cv.line(epsilon,case, [True, 4], display=True)
+
+	deps0 = 1e-5
 	eps_region = xp.array(case.eps_region)
-	theta = eps_region[1, 0]
-	radii = xp.linspace(eps_region[0, 0], eps_region[0, 1], case.eps_n)
-	epsilon = xp.zeros((case.eps_n, len(eps_region[:, 0])))
-	epsilon[:, 0] = radii * xp.cos(theta)
-	epsilon[:, 1] = radii * xp.sin(theta)
-	if len(eps_region[:, 0]) >= 3:
-		epsilon[:, 2:] = eps_region[2:, 0]
-	datanorm = cv.line(epsilon,case, [True, 4], display=True)
+	eps_dir = xp.array(case.eps_dir)
+	epsilon0 = eps_region[0, 0]
+	epsvec = epsilon0 * eps_dir + eps_region[:, 0]
+	h, lam = case.initial_h(epsvec)
+	deps = deps0
+	resultnorm = []
+	while epsilon0 <= eps_region[0, 1]:
+		epsilon = epsilon0 + deps
+		epsvec = epsilon * eps_dir + eps_region[:, 0] * (1-eps_dir)
+		result, h_, lam_ = cv.point(epsvec, case, h, lam)
+		while result[0] != 1 and deps >= case.tolmin:
+			deps /= 10.0
+			epsilon = epsilon0 + deps
+			epsvec = epsilon * eps_dir + eps_region[:, 0]
+			result, h_, lam_ = cv.point(epsvec, case, h, lam)
+		if result[0] == 1:
+			deps = deps0
+			h = h_.copy()
+			lam = lam_
+			epsilon0 = epsilon
+			resultnorm.append([epsilon0, case.norms(h, 4)])
+			print([epsilon, case.norms(h, 4)[0]])
+		else:
+			epsilon0 = eps_region[0, 1] + deps0
+	if case.save_results:
+		cv.save_data('line_norm', xp.array(resultnorm), time.strftime("%Y%m%d_%H%M"), case)
 
 
 class ConfKAM:
@@ -98,7 +129,7 @@ class ConfKAM:
 		fft_h[xp.abs(fft_h) <= self.threshold] = 0.0
 		h_thresh = ifftn(fft_h)
 		arg_v = self.phi + xp.tensordot(self.Omega, h_thresh, axes=0)
-		fft_l = 1j * self.Omega_nu *fft_h
+		fft_l = 1j * self.Omega_nu * fft_h
 		fft_l[self.zero_] = self.rescale_fft
 		lfunc = ifftn(fft_l)
 		epsilon = ifftn(self.lk * fft_h) + self.dv(arg_v, eps, self.Omega) + lam
