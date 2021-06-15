@@ -38,13 +38,13 @@ def main():
 		'eps_indx': [0, 1],
 		'eps_type': 'cartesian',
 		'tolmax': 1e10,
-		'tolmin': 1e-7,
-		'maxiter': 20,
-		'threshold': 1e-9,
+		'tolmin': 1e-10,
+		'maxiter': 50,
+		'threshold': 1e-13,
 		'dist_surf': 1e-5,
 		'precision': 64,
 		'choice_initial': 'continuation',
-		'save_results': False,
+		'save_results': True,
 		'plot_results': True})
 	dv = {
 		'pot1_2d': lambda phi, eps, Omega: Omega[0] * eps[0] * xp.sin(phi[0]) + eps[1] * (Omega[0] + Omega[1]) * xp.sin(phi[0] + phi[1]),
@@ -67,9 +67,10 @@ def main():
 	epsilon0 = eps_region[0, 0]
 	epsvec = epsilon0 * eps_dir + eps_region[:, 0] * (1 - eps_dir)
 	h, lam = case.initial_h(epsvec)
-	deps = 1e-3
+	deps0 = 1e-3
 	resultnorm = []
 	while epsilon0 <= eps_region[0, 1]:
+		deps = deps0
 		epsilon = epsilon0 + deps
 		epsvec = epsilon * eps_dir + eps_region[:, 0] * (1 - eps_dir)
 		result, h_, lam_ = cv.point(epsvec, case, h, lam, display=False)
@@ -82,7 +83,7 @@ def main():
 		else:
 			result_temp = [0, 0]
 			while (not result_temp[0]) and deps >= case.tolmin:
-				deps = deps / 10.0
+				deps = deps / 2.0
 				epsilon = epsilon0 + deps
 				epsvec = epsilon * eps_dir + eps_region[:, 0] * (1 - eps_dir)
 				result_temp, h_, lam_ = cv.point(epsvec, case, h, lam, display=False)
