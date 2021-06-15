@@ -16,16 +16,18 @@ def save_data(name, data, timestr, case, info=[]):
         savemat(type(case).__name__ + '_' + name + '_' + timestr + '.mat', mdic)
 
 
-def point(eps, case, h=[], lam=[], gethull=False):
+def point(eps, case, h=[], lam=[], gethull=False, display=False):
     h_ = h.copy()
     lam_ = lam
-    # if len(h_) == 0:
-    #     h_, lam_ = case.initial_h(eps)
+    if len(h_) == 0:
+        h_, lam_ = case.initial_h(eps)
     err = 1.0
     it_count = 0
     while (case.tolmax >= err >= case.tolmin) and (it_count <= case.maxiter):
         h_, lam_, err = case.refine_h(h_, lam_, eps)
         it_count += 1
+        if display:
+            print(['...', it_count, err])
     if err <= case.tolmin:
         it_count = 0
     if gethull:

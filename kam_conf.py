@@ -37,9 +37,9 @@ def main():
 		'eps_n': 256,
 		'eps_indx': [0, 1],
 		'eps_type': 'cartesian',
-		'tolmax': 1e100,
-		'tolmin': 1e-6,
-		'maxiter': 200,
+		'tolmax': 1e10,
+		'tolmin': 1e-7,
+		'maxiter': 20,
 		'threshold': 1e-9,
 		'dist_surf': 1e-5,
 		'precision': 64,
@@ -72,7 +72,7 @@ def main():
 	while epsilon0 <= eps_region[0, 1]:
 		epsilon = epsilon0 + deps
 		epsvec = epsilon * eps_dir + eps_region[:, 0] * (1 - eps_dir)
-		result, h_, lam_ = cv.point(epsvec, case, h, lam)
+		result, h_, lam_ = cv.point(epsvec, case, h, lam, display=False)
 		if result[0] == 1:
 			h = h_.copy()
 			lam = lam_
@@ -81,17 +81,17 @@ def main():
 			print([epsilon0, case.norms(h, 4)[0]])
 		else:
 			result_temp = [0, 0]
-			while result_temp[0] == 0 and deps >= case.tolmin:
+			while (not result_temp[0]) and deps >= case.tolmin:
 				deps = deps / 10.0
 				epsilon = epsilon0 + deps
-				epsvec_t = epsilon * eps_dir + eps_region[:, 0] * (1 - eps_dir)
-				result_temp, h_, lam_ = cv.point(epsvec_t, case, h, lam)
-			if result_temp[0] == 1:
+				epsvec = epsilon * eps_dir + eps_region[:, 0] * (1 - eps_dir)
+				result_temp, h_, lam_ = cv.point(epsvec, case, h, lam, display=False)
+			if result_temp[0]:
 				h = h_.copy()
 				lam = lam_
 				epsilon0 = epsilon
 				resultnorm.append([epsilon0, case.norms(h, 4)])
-				print([epsilon0, case.norms(h, 4)[0]])
+				print([epsilon0, case.norms(h, 4)[0], 'step2'])
 			else:
 				epsilon0 = eps_region[0, 1] + deps
 	if case.save_results:
@@ -148,8 +148,11 @@ class ConfKAM:
 		beta = ifftn((fft_wll + w0 * fft_ill) * self.sml_div.conj())
 		h = xp.real(h_thresh + beta * lfunc - xp.mean(beta * lfunc) * lfunc)
 		lam = xp.real(lam + delta)
-		arg_v = self.phi + xp.tensordot(self.Omega, h, axes=0)
-		err = xp.abs(ifftn(self.lk * fftn(h)) + lam + self.dv(arg_v, eps, self.Omega)).max()
+		fft_h = fftn(h)
+		fft_h[xp.abs(fft_h) <= self.threshold] = 0.0
+		h_thresh = ifftn(fft_h)
+		arg_v = self.phi + xp.tensordot(self.Omega, h_thresh, axes=0)
+		err = xp.abs(ifftn(self.lk * fft_h) + self.dv(arg_v, eps, self.Omega) + lam).max()
 		return h, lam, err
 
 	def norms(self, h, r=0):
