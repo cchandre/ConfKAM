@@ -7,14 +7,15 @@ import warnings
 warnings.filterwarnings("ignore")
 
 def main():
-	dict_params = {
-		'n': 2 ** 12,
-		'omega0': [0.618033988749895, -1.0],
-		# 'eps_region': [[0, 0.35], [0, 0.12]],
-		'eps_region': [[0.0, 0.03], [0.0, 0.03]],
-		'eps_dir': [1, 1],
-		'Omega': [1.0, 0.0],
-		'potential': 'pot1_2d'}
+	# dict_params = {
+	# 	'n': 2 ** 12,
+	# 	'omega0': [0.618033988749895, -1.0],
+	# 	# 'eps_region': [[0, 0.35], [0, 0.12]],
+	# 	'eps_region': [[0.0, 0.03], [0.0, 0.03]],
+	# 	'eps_modes': [1, 1],
+	#   'eps_dir' : [1, 1],
+	# 	'Omega': [1.0, 0.0],
+	# 	'potential': 'pot1_2d'}
 	# dict_params = {
 	# 	'n': 2 ** 10,
 	# 	'omega0': [0.414213562373095, -1.0],
@@ -27,24 +28,26 @@ def main():
 	# 	'eps_region': [[0, 0.06], [0, 0.2]],
 	# 	'Omega': [1.0, 0.0],
 	# 	'potential': 'pot1_2d'}
-	# dict_params = {
-	# 	'n': 2 ** 7,
-	# 	'omega0': [1.324717957244746, 1.754877666246693, 1.0],
-	# 	'eps_region': [[0.0, 0.15], [0.0,  0.40], [0.1, 0.1]],
-	# 	'Omega': [1.0, 1.0, -1.0],
-	# 	'potential': 'pot1_3d'}
+	dict_params = {
+		'n': 2 ** 8,
+		'omega0': [1.324717957244746, 1.754877666246693, 1.0],
+		'eps_region': [[0.0, 0.35], [0.0,  0.40], [0.1, 0.1]],
+		'eps_modes': [1, 1, 0],
+		'eps_dir': [1, 5, 0.1],
+		'Omega': [1.0, 1.0, -1.0],
+		'potential': 'pot1_3d'}
 	dict_params.update({
 		'eps_n': 256,
 		'eps_indx': [0, 1],
 		'eps_type': 'cartesian',
 		'tolmax': 1e10,
-		'tolmin': 1e-10,
+		'tolmin': 1e-8,
 		'maxiter': 50,
-		'threshold': 1e-13,
+		'threshold': 1e-11,
 		'dist_surf': 1e-5,
 		'precision': 64,
 		'choice_initial': 'continuation',
-		'save_results': True,
+		'save_results': False,
 		'plot_results': True})
 	dv = {
 		'pot1_2d': lambda phi, eps, Omega: Omega[0] * eps[0] * xp.sin(phi[0]) + eps[1] * (Omega[0] + Omega[1]) * xp.sin(phi[0] + phi[1]),
@@ -63,16 +66,17 @@ def main():
 	# datanorm = cv.line(epsilon,case, [True, 4], display=True)
 
 	eps_region = xp.array(case.eps_region)
+	eps_modes = xp.array(case.eps_modes)
 	eps_dir = xp.array(case.eps_dir)
 	epsilon0 = eps_region[0, 0]
-	epsvec = epsilon0 * eps_dir + eps_region[:, 0] * (1 - eps_dir)
+	epsvec = epsilon0 * eps_modes * eps_dir + (1 - eps_modes) * eps_dir
 	h, lam = case.initial_h(epsvec)
 	deps0 = 1e-3
 	resultnorm = []
 	while epsilon0 <= eps_region[0, 1]:
 		deps = deps0
 		epsilon = epsilon0 + deps
-		epsvec = epsilon * eps_dir + eps_region[:, 0] * (1 - eps_dir)
+		epsvec = epsilon * eps_modes * eps_dir + (1 - eps_modes) * eps_dir
 		result, h_, lam_ = cv.point(epsvec, case, h, lam, display=False)
 		if result[0] == 1:
 			h = h_.copy()
@@ -85,7 +89,7 @@ def main():
 			while (not result_temp[0]) and deps >= case.tolmin:
 				deps = deps / 2.0
 				epsilon = epsilon0 + deps
-				epsvec = epsilon * eps_dir + eps_region[:, 0] * (1 - eps_dir)
+				epsvec = epsilon * eps_modes * eps_dir + (1 - eps_modes) * eps_dir
 				result_temp, h_, lam_ = cv.point(epsvec, case, h, lam, display=False)
 			if result_temp[0]:
 				h = h_.copy()
