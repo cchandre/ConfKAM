@@ -8,10 +8,9 @@ warnings.filterwarnings("ignore")
 
 def main():
 	dict_params = {
-		'n': 2 ** 11,
+		'n': 2 ** 10,
 		'omega0': [0.618033988749895, -1.0],
-		# 'eps_region': [[0, 0.35], [0, 0.12]],
-		'eps_region': [[0.0, 0.03], [0.0, 0.03]],
+		'eps_region': [[0, 0.35], [0, 0.12]],
 		'eps_modes': [1, 1],
 		'eps_dir' : [1, 1],
 		'Omega': [1.0, 0.0],
@@ -38,18 +37,19 @@ def main():
 	# 	'potential': 'pot1_3d'}
 	dict_params.update({
 	    'tolmin': 1e-9,
-	    'threshold': 1e-11,
+	    'threshold': 1e-12,
 		'tolmax': 1e30,
-		'maxiter': 50,
-		'precision': 128,
+		'maxiter': 100,
+		'precision': 64,
 		'eps_n': 256,
+		'deps': 1e-3,
 		'eps_indx': [0, 1],
 		'eps_type': 'cartesian',
 		'dist_surf': 1e-5,
 		'choice_initial': 'continuation',
-		'finer_grid': True,
+		'finer_grid': False,
 		'r': 4,
-		'save_results': True,
+		'save_results': False,
 		'plot_results': True})
 	dv = {
 		'pot1_2d': lambda phi, eps, Omega: Omega[0] * eps[0] * xp.sin(phi[0]) + eps[1] * (Omega[0] + Omega[1]) * xp.sin(phi[0] + phi[1]),
@@ -57,54 +57,7 @@ def main():
 		}.get(dict_params['potential'], 'pot1_2d')
 	case = ConfKAM(dv, dict_params)
 	# data = cv.region(case)
-	# eps_region = xp.array(case.eps_region)
-	# theta = eps_region[1, 0]
-	# radii = xp.linspace(eps_region[0, 0], eps_region[0, 1], case.eps_n)
-	# epsilon = xp.zeros((case.eps_n, len(eps_region[:, 0])))
-	# epsilon[:, 0] = radii * xp.cos(theta)
-	# epsilon[:, 1] = radii * xp.sin(theta)
-	# if len(eps_region[:, 0]) >= 3:
-	# 	epsilon[:, 2:] = eps_region[2:, 0]
-	# datanorm = cv.line(epsilon,case, [True, case.r], display=True)
-
-	eps_region = xp.array(case.eps_region)
-	eps_modes = xp.array(case.eps_modes)
-	eps_dir = xp.array(case.eps_dir)
-	epsilon0 = eps_region[0, 0]
-	epsvec = epsilon0 * eps_modes * eps_dir + (1 - eps_modes) * eps_dir
-	h, lam = case.initial_h(epsvec)
-	deps0 = 1e-4
-	resultnorm = []
-	while epsilon0 <= eps_region[0, 1]:
-		deps = deps0
-		epsilon = epsilon0 + deps
-		epsvec = epsilon * eps_modes * eps_dir + (1 - eps_modes) * eps_dir
-		if case.choice_initial == 'fixed':
-			h, lam = case.initial_h(epsvec)
-		result, h_, lam_ = cv.point(epsvec, case, h, lam, display=False)
-		if result[0] == 1:
-			h = h_.copy()
-			lam = lam_
-			epsilon0 = epsilon
-			resultnorm.append([epsilon0, case.norms(h, case.r)])
-			print([epsilon0, case.norms(h, case.r)[0]])
-		else:
-			result_temp = [0, 0]
-			while (not result_temp[0]) and deps >= 1e-4:
-				deps = deps / 2.0
-				epsilon = epsilon0 + deps
-				epsvec = epsilon * eps_modes * eps_dir + (1 - eps_modes) * eps_dir
-				result_temp, h_, lam_ = cv.point(epsvec, case, h, lam, display=False)
-			if result_temp[0]:
-				h = h_.copy()
-				lam = lam_
-				epsilon0 = epsilon
-				resultnorm.append([epsilon0, case.norms(h, case.r)])
-				print([epsilon0, case.norms(h, case.r)[0], result_temp[1]])
-			else:
-				epsilon0 = eps_region[0, 1] + deps
-	if case.save_results:
-		cv.save_data('line_norm', xp.array(resultnorm), time.strftime("%Y%m%d_%H%M"), case)
+	data = cv.line_norm(case)
 
 
 class ConfKAM:
@@ -139,7 +92,7 @@ class ConfKAM:
 		ilk = xp.divide(1.0, self.lk, where=self.lk!=0)
 		if self.finer_grid:
 			ind_nu = self.dim * (fftfreq(2*self.n, d=1.0/self.precision(2*self.n)),)
-			nu = xp.meshgrid(*ind_nu2, indexing='ij')
+			nu = xp.meshgrid(*ind_nu, indexing='ij')
 			omega0_nu = xp.einsum('i,i...->...', self.omega0, nu)
 			self.lk2 = - omega0_nu ** 2
 			self.pad = self.dim * ((self.n//2, self.n//2),)
@@ -163,24 +116,24 @@ class ConfKAM:
 		fft_ill = fftn(1.0 / lfunc ** 2)
 		w0 = - fft_wll[self.zero_] / fft_ill[self.zero_]
 		beta = ifftn((fft_wll + w0 * fft_ill) * self.sml_div.conj())
-		h = xp.real(h_thresh + beta * lfunc - xp.mean(beta * lfunc) * lfunc)
-		lam = xp.real(lam + delta)
-		fft_h = fftn(h)
+		h_ = xp.real(h_thresh + beta * lfunc - xp.mean(beta * lfunc) * lfunc)
+		lam_ = xp.real(lam + delta)
+		fft_h = fftn(h_)
 		fft_h[xp.abs(fft_h) <= self.threshold] = 0.0
-		h_thresh = ifftn(fft_h)
+		h_ = ifftn(fft_h)
 		if self.finer_grid:
-			h = ifftn(ifftshift(xp.pad(fftshift(fft_h), self.pad))) * 2 ** self.dim
-			arg_v = self.phi2 + xp.tensordot(self.Omega, h, axes=0)
-			err = xp.abs(ifftn(self.lk2 * fftn(h)) + self.dv(arg_v, eps, self.Omega) + lam).max()
+			h__ = ifftn(ifftshift(xp.pad(fftshift(fft_h), self.pad))) * 2 ** self.dim
+			arg_v = self.phi2 + xp.tensordot(self.Omega, h__, axes=0)
+			err = xp.abs(ifftn(self.lk2 * fftn(h__)) + self.dv(arg_v, eps, self.Omega) + lam_).max()
 		else:
-			arg_v = self.phi + xp.tensordot(self.Omega, h_thresh, axes=0)
-			err = xp.abs(ifftn(self.lk * fft_h) + self.dv(arg_v, eps, self.Omega) + lam).max()
+			arg_v = self.phi + xp.tensordot(self.Omega, h_, axes=0)
+			err = xp.abs(ifftn(self.lk * fft_h) + self.dv(arg_v, eps, self.Omega) + lam_).max()
 			# err = self.norms(ifftn(self.lk * fft_h) + self.dv(arg_v, eps, self.Omega) + lam, r=self.r)[0]
-		return h_thresh, lam, err
+		return h_, lam_, err
 
 	def norms(self, h, r=0):
 		fft_h = fftn(h)
-		return xp.array([xp.sqrt(((1.0 + self.norm_nu ** 2) ** r * (xp.abs(fft_h) / self.rescale_fft) ** 2).sum()), xp.sqrt(xp.abs(ifftn(self.omega0_nu ** r * fft_h) ** 2).sum()), xp.sqrt(xp.abs(ifftn(self.Omega_nu ** r * fft_h) ** 2).sum())])
+		return xp.sqrt(((1.0 + self.norm_nu ** 2) ** r * (xp.abs(fft_h) / self.rescale_fft) ** 2).sum()), xp.sqrt(xp.abs(ifftn(self.omega0_nu ** r * fft_h) ** 2).sum()), xp.sqrt(xp.abs(ifftn(self.Omega_nu ** r * fft_h) ** 2).sum())
 
 if __name__ == "__main__":
 	main()
