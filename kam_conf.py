@@ -7,14 +7,14 @@ import warnings
 warnings.filterwarnings("ignore")
 
 def main():
-	dict_params = {
-		'n': 2 ** 12,
-		'omega0': [0.618033988749895, -1.0],
-		'eps_region': [[0.02, 0.35], [0, 0.12]],
-		'eps_modes': [1, 1],
-		'eps_dir' : [1, 1],
-		'Omega': [1.0, 0.0],
-		'potential': 'pot1_2d'}
+	# dict_params = {
+	# 	'n': 2 ** 12,
+	# 	'omega0': [0.618033988749895, -1.0],
+	# 	'eps_region': [[0.02, 0.35], [0, 0.12]],
+	# 	'eps_modes': [1, 1],
+	# 	'eps_dir' : [1, 1],
+	# 	'Omega': [1.0, 0.0],
+	# 	'potential': 'pot1_2d'}
 	# dict_params = {
 	# 	'n': 2 ** 10,
 	# 	'omega0': [0.414213562373095, -1.0],
@@ -27,28 +27,28 @@ def main():
 	# 	'eps_region': [[0, 0.06], [0, 0.2]],
 	# 	'Omega': [1.0, 0.0],
 	# 	'potential': 'pot1_2d'}
-	# dict_params = {
-	# 	'n': 2 ** 7,
-	# 	'omega0': [1.324717957244746, 1.754877666246693, 1.0],
-	# 	'eps_region': [[0.01, 0.15], [0.0,  0.40], [0.1, 0.1]],
-	# 	'eps_modes': [1, 1, 0],
-	# 	'eps_dir': [1, 10, 0.1],
-	# 	'Omega': [1.0, 1.0, -1.0],
-	# 	'potential': 'pot1_3d'}
+	dict_params = {
+		'n': 2 ** 8,
+		'omega0': [1.324717957244746, 1.754877666246693, 1.0],
+		'eps_region': [[0.0, 0.15], [0.0,  0.40], [0.1, 0.1]],
+		'eps_modes': [1, 1, 0],
+		'eps_dir': [1, 5, 0.1],
+		'Omega': [1.0, 1.0, -1.0],
+		'potential': 'pot1_3d'}
 	dict_params.update({
-	    'tolmin': 1e-6,
+	    'tolmin': 1e-3,
 	    'threshold': 1e-11,
 		'tolmax': 1e30,
-		'maxiter': 100,
+		'maxiter': 50,
 		'precision': 64,
 		'eps_n': 256,
 		'deps': 1e-4,
 		'eps_indx': [0, 1],
 		'eps_type': 'cartesian',
-		'dist_surf': 1e-11,
+		'dist_surf': 1e-6,
 		'choice_initial': 'continuation',
 		'finer_grid': False,
-		'r': 2,
+		'r': 6,
 		'save_results': True,
 		'plot_results': True})
 	dv = {
