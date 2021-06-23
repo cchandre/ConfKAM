@@ -7,14 +7,14 @@ import warnings
 warnings.filterwarnings("ignore")
 
 def main():
-	# dict_params = {
-	# 	'n': 2 ** 12,
-	# 	'omega0': [0.618033988749895, -1.0],
-	# 	'eps_region': [[0.02, 0.35], [0, 0.12]],
-	# 	'eps_modes': [1, 1],
-	# 	'eps_dir' : [1, 1],
-	# 	'Omega': [1.0, 0.0],
-	# 	'potential': 'pot1_2d'}
+	dict_params = {
+		'n': 2 ** 12,
+		'omega0': [0.618033988749895, -1.0],
+		'eps_region': [[0.02, 0.35], [0, 0.12]],
+		'eps_modes': [1, 1],
+		'eps_dir' : [1, 1],
+		'Omega': [1.0, 0.0],
+		'potential': 'pot1_2d'}
 	# dict_params = {
 	# 	'n': 2 ** 10,
 	# 	'omega0': [0.414213562373095, -1.0],
@@ -27,16 +27,16 @@ def main():
 	# 	'eps_region': [[0, 0.06], [0, 0.2]],
 	# 	'Omega': [1.0, 0.0],
 	# 	'potential': 'pot1_2d'}
-	dict_params = {
-		'n': 2 ** 8,
-		'omega0': [1.324717957244746, 1.754877666246693, 1.0],
-		'eps_region': [[0.0, 0.15], [0.0,  0.40], [0.1, 0.1]],
-		'eps_modes': [1, 1, 0],
-		'eps_dir': [1, 5, 0.1],
-		'Omega': [1.0, 1.0, -1.0],
-		'potential': 'pot1_3d'}
+	# dict_params = {
+	# 	'n': 2 ** 8,
+	# 	'omega0': [1.324717957244746, 1.754877666246693, 1.0],
+	# 	'eps_region': [[0.0, 0.15], [0.0,  0.40], [0.1, 0.1]],
+	# 	'eps_modes': [1, 1, 0],
+	# 	'eps_dir': [1, 5, 0.1],
+	# 	'Omega': [1.0, 1.0, -1.0],
+	# 	'potential': 'pot1_3d'}
 	dict_params.update({
-	    'tolmin': 1e-3,
+	    'tolmin': 1e-6,
 	    'threshold': 1e-11,
 		'tolmax': 1e30,
 		'maxiter': 50,
@@ -47,9 +47,8 @@ def main():
 		'eps_type': 'cartesian',
 		'dist_surf': 1e-6,
 		'choice_initial': 'continuation',
-		'finer_grid': False,
-		'r': 6,
-		'save_results': True,
+		'r': 4,
+		'save_results': False,
 		'plot_results': True})
 	dv = {
 		'pot1_2d': lambda phi, eps, Omega: Omega[0] * eps[0] * xp.sin(phi[0]) + eps[1] * (Omega[0] + Omega[1]) * xp.sin(phi[0] + phi[1]),
@@ -90,20 +89,11 @@ class ConfKAM:
 		self.rescale_fft = self.precision(self.n ** self.dim)
 		self.threshold_r = self.threshold * self.rescale_fft
 		ilk = xp.divide(1.0, self.lk, where=self.lk!=0)
-		if self.finer_grid:
-			ind_nu = self.dim * (fftfreq(2*self.n, d=1.0/self.precision(2*self.n)),)
-			nu = xp.meshgrid(*ind_nu, indexing='ij')
-			omega0_nu = xp.einsum('i,i...->...', self.omega0, nu)
-			self.lk2 = - omega0_nu ** 2
-			self.pad = self.dim * ((self.n//2, self.n//2),)
-			ind_phi = self.dim * (xp.linspace(0.0, 2.0 * xp.pi, 2*self.n, endpoint=False, dtype=self.precision),)
-			self.phi2 = xp.meshgrid(*ind_phi, indexing='ij')
 		self.initial_h = lambda eps: [- ifftn(fftn(self.dv(self.phi, eps, self.Omega)) * ilk), 0.0]
 
 	def refine_h(self, h, lam, eps):
 		fft_h = fftn(h)
 		fft_h[xp.abs(fft_h) <= self.threshold * xp.abs(fft_h).max()] = 0.0
-		# fft_h[xp.abs(fft_h) <= self.threshold_r] = 0.0
 		h_thresh = ifftn(fft_h)
 		arg_v = self.phi + xp.tensordot(self.Omega, h_thresh, axes=0)
 		fft_l = 1j * self.Omega_nu * fft_h
@@ -121,19 +111,10 @@ class ConfKAM:
 		lam_ = xp.real(lam + delta)
 		fft_h = fftn(h_)
 		fft_h[xp.abs(fft_h) <= self.threshold * xp.abs(fft_h).max()] = 0.0
-		# fft_h[xp.abs(fft_h) <= self.threshold_r] = 0.0
 		h_ = ifftn(fft_h)
-		if self.finer_grid:
-			h__ = ifftn(ifftshift(xp.pad(fftshift(fft_h), self.pad))) * 2 ** self.dim
-			arg_v = self.phi2 + xp.tensordot(self.Omega, h__, axes=0)
-			err = xp.abs(ifftn(self.lk2 * fftn(h__)) + self.dv(arg_v, eps, self.Omega) + lam_).max()
-			err /= xp.abs(h__).max()
-		else:
-			arg_v = self.phi + xp.tensordot(self.Omega, h_, axes=0)
-			#err = xp.abs(ifftn(self.lk * fft_h) + self.dv(arg_v, eps, self.Omega) + lam_).max()
-			#err /= xp.abs(h_).max()
-			err = self.norms(ifftn(self.lk * fft_h) + self.dv(arg_v, eps, self.Omega) + lam, r=self.r)[0]
-			err /= self.norms(h_, r=self.r)[0]
+		arg_v = self.phi + xp.tensordot(self.Omega, h_, axes=0)
+		err = xp.abs(self.lk * fft_h + fftn(self.dv(arg_v, eps, self.Omega) + lam)).sum() / self.rescale_fft
+		tail = h_[self.dim * (self.n//4 : 3*self.n//4)]
 		return h_, lam_, err
 
 	def norms(self, h, r=0):

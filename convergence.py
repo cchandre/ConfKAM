@@ -62,7 +62,7 @@ def line_norm(case, display=True):
         else:
             result_temp = [0, 0]
             while (not result_temp[0]) and deps >= case.dist_surf:
-                deps = deps / 2.0
+                deps = deps / 10.0
                 epsilon = epsilon0 + deps
                 epsvec = epsilon * eps_modes * eps_dir + (1 - eps_modes) * eps_dir
                 result_temp, h_, lam_ = point(epsvec, case, h, lam, display=False)
