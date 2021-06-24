@@ -8,27 +8,31 @@ warnings.filterwarnings("ignore")
 
 def main():
 	dict_params = {
-		'n': 2 ** 12,
+		'n': 2 ** 4,
+		'n_max': 2 ** 12,
 		'omega0': [0.618033988749895, -1.0],
-		'eps_region': [[0.02, 0.35], [0, 0.12]],
+		'eps_region': [[0.0, 0.35], [0, 0.12]],
 		'eps_modes': [1, 1],
 		'eps_dir' : [1, 1],
 		'Omega': [1.0, 0.0],
 		'potential': 'pot1_2d'}
 	# dict_params = {
-	# 	'n': 2 ** 10,
+	# 	'n': 2 ** 4,
+	#   'n_max': 2 ** 12,
 	# 	'omega0': [0.414213562373095, -1.0],
 	# 	'eps_region': [[0, 0.12], [0, 0.225]],
 	# 	'Omega': [1.0, 0.0],
 	# 	'potential': 'pot1_2d'}
 	# dict_params = {
-	# 	'n': 2 ** 10,
+	# 	'n': 2 ** 4,
+	#   'n_max': 2 ** 12,
 	# 	'omega0': [0.302775637731995, -1.0],
 	# 	'eps_region': [[0, 0.06], [0, 0.2]],
 	# 	'Omega': [1.0, 0.0],
 	# 	'potential': 'pot1_2d'}
 	# dict_params = {
-	# 	'n': 2 ** 8,
+	# 	'n': 2 ** 3,
+	#   'n_max': 2 ** 8,
 	# 	'omega0': [1.324717957244746, 1.754877666246693, 1.0],
 	# 	'eps_region': [[0.0, 0.15], [0.0,  0.40], [0.1, 0.1]],
 	# 	'eps_modes': [1, 1, 0],
@@ -36,8 +40,8 @@ def main():
 	# 	'Omega': [1.0, 1.0, -1.0],
 	# 	'potential': 'pot1_3d'}
 	dict_params.update({
-	    'tolmin': 1e-6,
-	    'threshold': 1e-11,
+	    'tolmin': 1e-9,
+	    'threshold': 1e-12,
 		'tolmax': 1e30,
 		'maxiter': 50,
 		'precision': 64,
@@ -74,22 +78,24 @@ class ConfKAM:
 		self.dv = dv
 		self.dim = len(self.omega0)
 		self.omega0 = xp.array(self.omega0, dtype=self.precision)
+		self.Omega = xp.array(self.Omega, dtype=self.precision)
 		self.zero_ = self.dim * (0,)
-		ind_nu = self.dim * (fftfreq(self.n, d=1.0/self.precision(self.n)),)
+
+	def set_var(self, n):
+		ind_nu = self.dim * (fftfreq(n, d=1.0/self.precision(n)),)
 		nu = xp.meshgrid(*ind_nu, indexing='ij')
 		self.norm_nu = LA.norm(nu, axis=0)
 		self.omega0_nu = xp.einsum('i,i...->...', self.omega0, nu)
-		self.Omega = xp.array(self.Omega, dtype=self.precision)
 		self.Omega_nu = xp.einsum('i,i...->...', self.Omega, nu)
 		self.lk = - self.omega0_nu ** 2
-		self.sml_div = 1j * self.omega0_nu
-		self.sml_div = xp.divide(1.0, self.sml_div, where=self.sml_div!=0)
-		ind_phi = self.dim * (xp.linspace(0.0, 2.0 * xp.pi, self.n, endpoint=False, dtype=self.precision),)
+		self.sml_div = -1j * xp.divide(1.0, self.omega0_nu, where=self.omega0_nu!=0)
+		ind_phi = self.dim * (xp.linspace(0.0, 2.0 * xp.pi, n, endpoint=False, dtype=self.precision),)
 		self.phi = xp.meshgrid(*ind_phi, indexing='ij')
-		self.rescale_fft = self.precision(self.n ** self.dim)
-		self.threshold_r = self.threshold * self.rescale_fft
+		self.rescale_fft = self.precision(n ** self.dim)
 		ilk = xp.divide(1.0, self.lk, where=self.lk!=0)
 		self.initial_h = lambda eps: [- ifftn(fftn(self.dv(self.phi, eps, self.Omega)) * ilk), 0.0]
+		self.tail_indx = self.dim * xp.index_exp[n//4:3*n//4+1]
+		self.pad = self.dim * ((n//4, n//4),)
 
 	def refine_h(self, h, lam, eps):
 		fft_h = fftn(h)
@@ -109,12 +115,19 @@ class ConfKAM:
 		beta = ifftn((fft_wll + w0 * fft_ill) * self.sml_div.conj())
 		h_ = xp.real(h_thresh + beta * lfunc - xp.mean(beta * lfunc) * lfunc)
 		lam_ = xp.real(lam + delta)
-		fft_h = fftn(h_)
-		fft_h[xp.abs(fft_h) <= self.threshold * xp.abs(fft_h).max()] = 0.0
-		h_ = ifftn(fft_h)
+		fft_h_ = fftn(h_)
+		tail_norm = xp.abs(fft_h_[self.tail_indx]).sum() / self.rescale_fft
+		fft_h_[xp.abs(fft_h_) <= self.threshold * xp.abs(fft_h_).max()] = 0.0
+		if (tail_norm >= self.threshold) and (self.n < self.n_max):
+			self.n = 2 * self.n
+			self.set_var(self.n)
+			h = ifftn(ifftshift(xp.pad(fftshift(fft_h), self.pad))) * 2 ** self.dim
+			h_ = ifftn(ifftshift(xp.pad(fftshift(fft_h_), self.pad))) * 2 ** self.dim
+			fft_h_ = ifftshift(xp.pad(fftshift(fft_h_), self.pad))
+		else:
+			h_ = ifftn(fft_h_)
 		arg_v = self.phi + xp.tensordot(self.Omega, h_, axes=0)
-		err = xp.abs(self.lk * fft_h + fftn(self.dv(arg_v, eps, self.Omega) + lam)).sum() / self.rescale_fft
-		tail = h_[self.dim * (self.n//4 : 3*self.n//4)]
+		err = xp.abs(self.lk * fft_h_ + fftn(self.dv(arg_v, eps, self.Omega) + lam)).sum() / self.rescale_fft
 		return h_, lam_, err
 
 	def norms(self, h, r=0):
