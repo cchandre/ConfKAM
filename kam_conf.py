@@ -8,8 +8,8 @@ warnings.filterwarnings("ignore")
 
 def main():
 	dict_params = {
-		'n': 2 ** 4,
-		'n_max': 2 ** 12,
+		'n_min': 2 ** 4,
+		'n_max': 2 ** 8,
 		'omega0': [0.618033988749895, -1.0],
 		'eps_region': [[0.0, 0.35], [0, 0.12]],
 		'eps_modes': [1, 1],
@@ -17,22 +17,22 @@ def main():
 		'Omega': [1.0, 0.0],
 		'potential': 'pot1_2d'}
 	# dict_params = {
-	# 	'n': 2 ** 4,
+	# 	'n_min': 2 ** 4,
 	#   'n_max': 2 ** 12,
 	# 	'omega0': [0.414213562373095, -1.0],
 	# 	'eps_region': [[0, 0.12], [0, 0.225]],
 	# 	'Omega': [1.0, 0.0],
 	# 	'potential': 'pot1_2d'}
 	# dict_params = {
-	# 	'n': 2 ** 4,
+	# 	'n_min': 2 ** 4,
 	#   'n_max': 2 ** 12,
 	# 	'omega0': [0.302775637731995, -1.0],
 	# 	'eps_region': [[0, 0.06], [0, 0.2]],
 	# 	'Omega': [1.0, 0.0],
 	# 	'potential': 'pot1_2d'}
 	# dict_params = {
-	# 	'n': 2 ** 3,
-	#   'n_max': 2 ** 8,
+	# 	'n_min': 2 ** 3,
+	# 	'n_max': 2 ** 8,
 	# 	'omega0': [1.324717957244746, 1.754877666246693, 1.0],
 	# 	'eps_region': [[0.0, 0.15], [0.0,  0.40], [0.1, 0.1]],
 	# 	'eps_modes': [1, 1, 0],
@@ -40,18 +40,18 @@ def main():
 	# 	'Omega': [1.0, 1.0, -1.0],
 	# 	'potential': 'pot1_3d'}
 	dict_params.update({
-	    'tolmin': 1e-9,
-	    'threshold': 1e-12,
+	    'tolmin': 1e-5,
+	    'threshold': 1e-8,
 		'tolmax': 1e30,
 		'maxiter': 50,
-		'precision': 64,
+		'precision': 128,
 		'eps_n': 256,
-		'deps': 1e-4,
+		'deps': 1e-3,
 		'eps_indx': [0, 1],
 		'eps_type': 'cartesian',
-		'dist_surf': 1e-6,
+		'dist_surf': 1e-5,
 		'choice_initial': 'continuation',
-		'r': 4,
+		'r': 6,
 		'save_results': False,
 		'plot_results': True})
 	dv = {
@@ -74,7 +74,7 @@ class ConfKAM:
 		for key in dict_params:
 			setattr(self, key, dict_params[key])
 		self.DictParams = dict_params
-		self.precision = {64: xp.float64, 128: xp.float128}.get(self.precision, xp.float64)
+		self.precision = {32: xp.float32, 64: xp.float64, 128: xp.float128}.get(self.precision, xp.float64)
 		self.dv = dv
 		self.dim = len(self.omega0)
 		self.omega0 = xp.array(self.omega0, dtype=self.precision)
@@ -98,6 +98,8 @@ class ConfKAM:
 		self.pad = self.dim * ((n//4, n//4),)
 
 	def refine_h(self, h, lam, eps):
+		n = h.shape[0]
+		self.set_var(n)
 		fft_h = fftn(h)
 		fft_h[xp.abs(fft_h) <= self.threshold * xp.abs(fft_h).max()] = 0.0
 		h_thresh = ifftn(fft_h)
@@ -118,9 +120,8 @@ class ConfKAM:
 		fft_h_ = fftn(h_)
 		tail_norm = xp.abs(fft_h_[self.tail_indx]).sum() / self.rescale_fft
 		fft_h_[xp.abs(fft_h_) <= self.threshold * xp.abs(fft_h_).max()] = 0.0
-		if (tail_norm >= self.threshold) and (self.n < self.n_max):
-			self.n = 2 * self.n
-			self.set_var(self.n)
+		if (tail_norm >= self.threshold) and (n < self.n_max):
+			self.set_var(2 * n)
 			h = ifftn(ifftshift(xp.pad(fftshift(fft_h), self.pad))) * 2 ** self.dim
 			h_ = ifftn(ifftshift(xp.pad(fftshift(fft_h_), self.pad))) * 2 ** self.dim
 			fft_h_ = ifftshift(xp.pad(fftshift(fft_h_), self.pad))

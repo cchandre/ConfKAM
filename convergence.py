@@ -37,7 +37,7 @@ def point(eps, case, h=[], lam=[], gethull=False, display=False):
 
 
 def line_norm(case, display=True):
-    case.set_var(case.n)
+    case.set_var(case.n_min)
     eps_region = xp.array(case.eps_region)
     eps_modes = xp.array(case.eps_modes)
     eps_dir = xp.array(case.eps_dir)
@@ -86,6 +86,7 @@ def line_norm(case, display=True):
 
 
 def line(epsilon, case, getnorm=[False, 0], display=False):
+    case.set_var(case.n_min)
     h, lam = case.initial_h(epsilon[0])
     results = []
     resultnorm = []
@@ -110,7 +111,6 @@ def line(epsilon, case, getnorm=[False, 0], display=False):
 
 
 def region(case):
-    case.set_var(case.n)
     timestr = time.strftime("%Y%m%d_%H%M")
     eps_region = xp.array(case.eps_region, dtype=case.precision)
     eps_vecs = xp.linspace(eps_region[:, 0], eps_region[:, 1], case.eps_n, dtype=case.precision)
