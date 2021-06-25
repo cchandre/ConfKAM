@@ -31,7 +31,7 @@ def main():
 	# 	'Omega': [1.0, 0.0],
 	# 	'potential': 'pot1_2d'}
 	dict_params = {
-		'n_min': 2 ** 7,
+		'n_min': 2 ** 5,
 		'n_max': 2 ** 9,
 		'omega0': [1.324717957244746, 1.754877666246693, 1.0],
 		'eps_region': [[0.0, 0.15], [0.0,  0.40], [0.1, 0.1]],
@@ -46,15 +46,15 @@ def main():
 		'maxiter': 150,
 		'precision': 64,
 		'eps_n': 256,
-		'deps': 1e-3,
+		'deps': 1e-4,
 		'eps_indx': [0, 1],
 		'eps_type': 'cartesian',
-		'dist_surf': 1e-6,
+		'dist_surf': 1e-5,
 		'choice_initial': 'fixed',
 		'monitor_grad': False,
 		'r': 6,
 		'parallelization': False,
-		'save_results': False,
+		'save_results': True,
 		'plot_results': True})
 	dv = {
 		'pot1_2d': lambda phi, eps, Omega: Omega[0] * eps[0] * xp.sin(phi[0]) + eps[1] * (Omega[0] + Omega[1]) * xp.sin(phi[0] + phi[1]),
@@ -98,7 +98,7 @@ class ConfKAM:
 		ilk = xp.divide(1.0, self.lk, where=self.lk!=0)
 		self.initial_h = lambda eps: [- ifftn(fftn(self.dv(self.phi, eps, self.Omega)) * ilk), 0.0]
 		self.tail_indx = self.dim * xp.index_exp[n//4:3*n//4+1]
-		self.pad = ((n//4, n//4),)
+		self.pad = self.dim * ((n//4, n//4),)
 
 	def refine_h(self, h, lam, eps):
 		n = h.shape[0]
@@ -124,6 +124,7 @@ class ConfKAM:
 		tail_norm = xp.abs(fft_h_[self.tail_indx]).sum() / self.rescale_fft
 		fft_h_[xp.abs(fft_h_) <= self.threshold * xp.abs(fft_h_).max()] = 0.0
 		if (tail_norm >= self.threshold) and (n < self.n_max):
+			print('warning: change of value of n (from {} to {})'.format(n, 2*n))
 			self.set_var(2 * n)
 			h = ifftn(ifftshift(xp.pad(fftshift(fft_h), self.pad))) * 2 ** self.dim
 			h_ = ifftn(ifftshift(xp.pad(fftshift(fft_h_), self.pad))) * 2 ** self.dim

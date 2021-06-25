@@ -66,6 +66,8 @@ def line_norm(case, display=True):
                 deps = deps / 10.0
                 epsilon = epsilon0 + deps
                 epsvec = epsilon * eps_modes * eps_dir + (1 - eps_modes) * eps_dir
+                if case.choice_initial == 'fixed':
+                    h, lam = case.initial_h(epsvec)
                 result_temp, h_, lam_ = point(epsvec, case, h, lam, display=False)
             if result_temp[0]:
                 deps0 = deps
