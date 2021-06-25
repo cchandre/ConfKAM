@@ -7,15 +7,15 @@ import warnings
 warnings.filterwarnings("ignore")
 
 def main():
-	dict_params = {
-		'n_min': 2 ** 4,
-		'n_max': 2 ** 8,
-		'omega0': [0.618033988749895, -1.0],
-		'eps_region': [[0.0, 0.35], [0, 0.12]],
-		'eps_modes': [1, 1],
-		'eps_dir' : [1, 1],
-		'Omega': [1.0, 0.0],
-		'potential': 'pot1_2d'}
+	# dict_params = {
+	# 	'n_min': 2 ** 4,
+	# 	'n_max': 2 ** 7,
+	# 	'omega0': [0.618033988749895, -1.0],
+	# 	'eps_region': [[0.0, 0.35], [0, 0.12]],
+	# 	'eps_modes': [1, 1],
+	# 	'eps_dir' : [1, 1],
+	# 	'Omega': [1.0, 0.0],
+	# 	'potential': 'pot1_2d'}
 	# dict_params = {
 	# 	'n_min': 2 ** 4,
 	#   'n_max': 2 ** 12,
@@ -30,28 +30,30 @@ def main():
 	# 	'eps_region': [[0, 0.06], [0, 0.2]],
 	# 	'Omega': [1.0, 0.0],
 	# 	'potential': 'pot1_2d'}
-	# dict_params = {
-	# 	'n_min': 2 ** 3,
-	# 	'n_max': 2 ** 8,
-	# 	'omega0': [1.324717957244746, 1.754877666246693, 1.0],
-	# 	'eps_region': [[0.0, 0.15], [0.0,  0.40], [0.1, 0.1]],
-	# 	'eps_modes': [1, 1, 0],
-	# 	'eps_dir': [1, 5, 0.1],
-	# 	'Omega': [1.0, 1.0, -1.0],
-	# 	'potential': 'pot1_3d'}
+	dict_params = {
+		'n_min': 2 ** 7,
+		'n_max': 2 ** 9,
+		'omega0': [1.324717957244746, 1.754877666246693, 1.0],
+		'eps_region': [[0.0, 0.15], [0.0,  0.40], [0.1, 0.1]],
+		'eps_modes': [1, 1, 0],
+		'eps_dir': [1, 5, 0.1],
+		'Omega': [1.0, 1.0, -1.0],
+		'potential': 'pot1_3d'}
 	dict_params.update({
-	    'tolmin': 1e-5,
-	    'threshold': 1e-8,
+	    'tolmin': 1e-6,
+	    'threshold': 1e-11,
 		'tolmax': 1e30,
-		'maxiter': 50,
-		'precision': 128,
+		'maxiter': 150,
+		'precision': 64,
 		'eps_n': 256,
 		'deps': 1e-3,
 		'eps_indx': [0, 1],
 		'eps_type': 'cartesian',
-		'dist_surf': 1e-5,
-		'choice_initial': 'continuation',
+		'dist_surf': 1e-6,
+		'choice_initial': 'fixed',
+		'monitor_grad': False,
 		'r': 6,
+		'parallelization': False,
 		'save_results': False,
 		'plot_results': True})
 	dv = {
@@ -77,25 +79,26 @@ class ConfKAM:
 		self.precision = {32: xp.float32, 64: xp.float64, 128: xp.float128}.get(self.precision, xp.float64)
 		self.dv = dv
 		self.dim = len(self.omega0)
+		self.id = xp.reshape(xp.identity(self.dim), 2 * (self.dim, ) + self.dim * (1,))
 		self.omega0 = xp.array(self.omega0, dtype=self.precision)
 		self.Omega = xp.array(self.Omega, dtype=self.precision)
 		self.zero_ = self.dim * (0,)
 
 	def set_var(self, n):
 		ind_nu = self.dim * (fftfreq(n, d=1.0/self.precision(n)),)
+		ind_phi = self.dim * (xp.linspace(0.0, 2.0 * xp.pi, n, endpoint=False, dtype=self.precision),)
 		nu = xp.meshgrid(*ind_nu, indexing='ij')
+		self.phi = xp.meshgrid(*ind_phi, indexing='ij')
 		self.norm_nu = LA.norm(nu, axis=0)
 		self.omega0_nu = xp.einsum('i,i...->...', self.omega0, nu)
 		self.Omega_nu = xp.einsum('i,i...->...', self.Omega, nu)
 		self.lk = - self.omega0_nu ** 2
 		self.sml_div = -1j * xp.divide(1.0, self.omega0_nu, where=self.omega0_nu!=0)
-		ind_phi = self.dim * (xp.linspace(0.0, 2.0 * xp.pi, n, endpoint=False, dtype=self.precision),)
-		self.phi = xp.meshgrid(*ind_phi, indexing='ij')
 		self.rescale_fft = self.precision(n ** self.dim)
 		ilk = xp.divide(1.0, self.lk, where=self.lk!=0)
 		self.initial_h = lambda eps: [- ifftn(fftn(self.dv(self.phi, eps, self.Omega)) * ilk), 0.0]
 		self.tail_indx = self.dim * xp.index_exp[n//4:3*n//4+1]
-		self.pad = self.dim * ((n//4, n//4),)
+		self.pad = ((n//4, n//4),)
 
 	def refine_h(self, h, lam, eps):
 		n = h.shape[0]
@@ -129,9 +132,16 @@ class ConfKAM:
 			h_ = ifftn(fft_h_)
 		arg_v = self.phi + xp.tensordot(self.Omega, h_, axes=0)
 		err = xp.abs(self.lk * fft_h_ + fftn(self.dv(arg_v, eps, self.Omega) + lam)).sum() / self.rescale_fft
+		if self.monitor_grad:
+			dh_ = self.id + xp.tensordot(self.Omega, xp.gradient(h_, 2.0 * xp.pi / n), axes=0)
+			det_h_ = xp.abs(LA.det(xp.moveaxis(dh_, [0, 1], [-2, -1]))).min()
+			if det_h_ <= self.tolmin:
+				print('warning: non-invertibility...')
 		return h_, lam_, err
 
 	def norms(self, h, r=0):
+		n = h.shape[0]
+		self.set_var(n)
 		fft_h = fftn(h)
 		return xp.sqrt(((1.0 + self.norm_nu ** 2) ** r * (xp.abs(fft_h) / self.rescale_fft) ** 2).sum()), xp.sqrt(xp.abs(ifftn(self.omega0_nu ** r * fft_h) ** 2).sum()), xp.sqrt(xp.abs(ifftn(self.Omega_nu ** r * fft_h) ** 2).sum())
 

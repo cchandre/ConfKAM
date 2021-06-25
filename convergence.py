@@ -1,5 +1,5 @@
 import numpy as xp
-from tqdm import tqdm
+from tqdm import tqdm, trange
 import multiprocess
 from scipy.io import savemat
 import time
@@ -129,22 +129,28 @@ def region(case):
             eps_copy[:, case.eps_indx[0]] = radii * xp.cos(thetas[it])
             eps_copy[:, case.eps_indx[1]] = radii * xp.sin(thetas[it])
             eps_list.append(eps_copy)
-    num_cores = multiprocess.cpu_count()
-    pool = multiprocess.Pool(num_cores)
     convs = []
     iters = []
-    line_ = lambda it: line(eps_list[it], case)
-    for conv, iter in tqdm(pool.imap(line_, iterable=range(case.eps_n)), total=case.eps_n):
-        convs.append(conv)
-        iters.append(iter)
+    if case.parallelization:
+        num_cores = multiprocess.cpu_count()
+        pool = multiprocess.Pool(num_cores)
+        line_ = lambda it: line(eps_list[it], case)
+        for conv, iter in tqdm(pool.imap(line_, iterable=range(case.eps_n)), total=case.eps_n):
+            convs.append(conv)
+            iters.append(iter)
+    else:
+        for it in trange(case.eps_n):
+            conv, iter = line(eps_list[it], case)
+            convs.append(conv)
+            iters.append(iter)
     if case.save_results:
         save_data('region', xp.array(convs), timestr, case, info=xp.array(iters))
     if case.plot_results:
         if (case.eps_type == 'cartesian') and case.plot_results:
-            plt.pcolor(xp.array(convs))
+            plt.pcolor(xp.array(iters))
         elif (case.eps_type == 'polar') and case.plot_results:
             r, theta = xp.meshgrid(radii, thetas)
             fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
-            ax.contourf(theta, r, xp.array(convs))
+            ax.contourf(theta, r, xp.array(iters))
         plt.show()
     return xp.array(convs)
