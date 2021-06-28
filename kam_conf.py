@@ -9,36 +9,38 @@ warnings.filterwarnings("ignore")
 def main():
 	# dict_params = {
 	# 	'n_min': 2 ** 4,
-	# 	'n_max': 2 ** 7,
+	# 	'n_max': 2 ** 8,
 	# 	'omega0': [0.618033988749895, -1.0],
-	# 	'eps_region': [[0.0, 0.35], [0, 0.12]],
-	# 	'eps_modes': [1, 1],
-	# 	'eps_dir' : [1, 1],
 	# 	'Omega': [1.0, 0.0],
-	# 	'potential': 'pot1_2d'}
+	# 	'potential': 'pot1_2d',
+	# 	'eps_region': [[0.0, 0.35], [0, 0.12]],
+	# 	'eps_line': [0.0, 0.03],
+	# 	'eps_modes': [1, 1],
+	# 	'eps_dir' : [1, 1]}
 	# dict_params = {
 	# 	'n_min': 2 ** 4,
 	#   'n_max': 2 ** 12,
 	# 	'omega0': [0.414213562373095, -1.0],
-	# 	'eps_region': [[0, 0.12], [0, 0.225]],
 	# 	'Omega': [1.0, 0.0],
-	# 	'potential': 'pot1_2d'}
+	# 	'potential': 'pot1_2d',
+	# 	'eps_region': [[0, 0.12], [0, 0.225]]}
 	# dict_params = {
 	# 	'n_min': 2 ** 4,
 	#   'n_max': 2 ** 12,
 	# 	'omega0': [0.302775637731995, -1.0],
-	# 	'eps_region': [[0, 0.06], [0, 0.2]],
 	# 	'Omega': [1.0, 0.0],
-	# 	'potential': 'pot1_2d'}
+	# 	'potential': 'pot1_2d',
+	# 	'eps_region': [[0, 0.06], [0, 0.2]]}
 	dict_params = {
 		'n_min': 2 ** 5,
-		'n_max': 2 ** 9,
+		'n_max': 2 ** 7,
 		'omega0': [1.324717957244746, 1.754877666246693, 1.0],
-		'eps_region': [[0.0, 0.15], [0.0,  0.40], [0.1, 0.1]],
-		'eps_modes': [1, 1, 0],
-		'eps_dir': [1, 5, 0.1],
 		'Omega': [1.0, 1.0, -1.0],
-		'potential': 'pot1_3d'}
+		'potential': 'pot1_3d',
+		'eps_region': [[0.0, 0.15], [0.0,  0.40], [0.1, 0.1]],
+		'eps_line': [0, 0.05],
+		'eps_modes': [1, 1, 0],
+		'eps_dir': [1, 5, 0.1]}
 	dict_params.update({
 	    'tolmin': 1e-6,
 	    'threshold': 1e-11,
@@ -54,7 +56,9 @@ def main():
 		'monitor_grad': False,
 		'r': 6,
 		'parallelization': False,
-		'save_results': True,
+		'adapt_n': True,
+		'adapt_eps': False,
+		'save_results': False,
 		'plot_results': True})
 	dv = {
 		'pot1_2d': lambda phi, eps, Omega: Omega[0] * eps[0] * xp.sin(phi[0]) + eps[1] * (Omega[0] + Omega[1]) * xp.sin(phi[0] + phi[1]),
@@ -123,7 +127,7 @@ class ConfKAM:
 		fft_h_ = fftn(h_)
 		tail_norm = xp.abs(fft_h_[self.tail_indx]).sum() / self.rescale_fft
 		fft_h_[xp.abs(fft_h_) <= self.threshold * xp.abs(fft_h_).max()] = 0.0
-		if (tail_norm >= self.threshold) and (n < self.n_max):
+		if (tail_norm >= self.threshold) and (n < self.n_max) and self.adapt_n:
 			print('warning: change of value of n (from {} to {})'.format(n, 2*n))
 			self.set_var(2 * n)
 			h = ifftn(ifftshift(xp.pad(fftshift(fft_h), self.pad))) * 2 ** self.dim

@@ -41,12 +41,12 @@ def line_norm(case, display=True):
     eps_region = xp.array(case.eps_region)
     eps_modes = xp.array(case.eps_modes)
     eps_dir = xp.array(case.eps_dir)
-    epsilon0 = eps_region[0, 0]
+    epsilon0 = case.eps_line[0]
     epsvec = epsilon0 * eps_modes * eps_dir + (1 - eps_modes) * eps_dir
     h, lam = case.initial_h(epsvec)
     deps0 = case.deps
     resultnorm = []
-    while epsilon0 <= eps_region[0, 1]:
+    while epsilon0 <= case.eps_line[1]:
         deps = deps0
         epsilon = epsilon0 + deps
         epsvec = epsilon * eps_modes * eps_dir + (1 - eps_modes) * eps_dir
@@ -54,13 +54,14 @@ def line_norm(case, display=True):
             h, lam = case.initial_h(epsvec)
         result, h_, lam_ = point(epsvec, case, h, lam, display=False)
         if result[0] == 1:
-            h = h_.copy()
-            lam = lam_
+            if case.choice_initial == 'continuation':
+                h = h_.copy()
+                lam = lam_
             epsilon0 = epsilon
-            resultnorm.append(xp.concatenate((epsilon0, case.norms(h, case.r)), axis=None))
+            resultnorm.append(xp.concatenate((epsilon0, case.norms(h_, case.r)), axis=None))
             if display:
-                print([epsilon0, case.norms(h, case.r)[0]])
-        else:
+                print([epsilon0, case.norms(h_, case.r)[0]])
+        elif case.adapt_eps:
             result_temp = [0, 0]
             while (not result_temp[0]) and deps >= case.dist_surf:
                 deps = deps / 10.0
@@ -71,13 +72,16 @@ def line_norm(case, display=True):
                 result_temp, h_, lam_ = point(epsvec, case, h, lam, display=False)
             if result_temp[0]:
                 deps0 = deps
-                h = h_.copy()
-                lam = lam_
+                if case.choice_initial == 'continuation':
+                    h = h_.copy()
+                    lam = lam_
                 epsilon0 = epsilon
-                resultnorm.append(xp.concatenate((epsilon0, case.norms(h, case.r)), axis=None))
-                print([epsilon0, case.norms(h, case.r)[0], result_temp[1]])
+                resultnorm.append(xp.concatenate((epsilon0, case.norms(h_, case.r)), axis=None))
+                print([epsilon0, case.norms(h_, case.r)[0], result_temp[1]])
             else:
-                epsilon0 = eps_region[0, 1] + deps
+                epsilon0 += deps0
+        else:
+            epsilon0 = epsilon
     resultnorm = xp.array(resultnorm)
     if case.save_results:
         save_data('line_norm', resultnorm, time.strftime("%Y%m%d_%H%M"), case)
