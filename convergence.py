@@ -37,6 +37,7 @@ def point(eps, case, h=[], lam=[], gethull=False, display=False):
 
 
 def line_norm(case, display=True):
+    timestr = time.strftime("%Y%m%d_%H%M")
     case.set_var(case.n_min)
     eps_region = xp.array(case.eps_region)
     eps_modes = xp.array(case.eps_modes)
@@ -61,6 +62,8 @@ def line_norm(case, display=True):
             resultnorm.append(xp.concatenate((epsilon0, case.norms(h_, case.r)), axis=None))
             if display:
                 print([epsilon0, case.norms(h_, case.r)[0]])
+            if case.save_results:
+                save_data('line_norm', xp.array(resultnorm), timestr, case)
         elif case.adapt_eps:
             result_temp = [0, 0]
             while (not result_temp[0]) and deps >= case.dist_surf:
@@ -77,14 +80,15 @@ def line_norm(case, display=True):
                     lam = lam_
                 epsilon0 = epsilon
                 resultnorm.append(xp.concatenate((epsilon0, case.norms(h_, case.r)), axis=None))
-                print([epsilon0, case.norms(h_, case.r)[0], result_temp[1]])
+                if display:
+                    print([epsilon0, case.norms(h_, case.r)[0], result_temp[1]])
+                if case.save_results:
+                    save_data('line_norm', xp.array(resultnorm), timestr, case)
             else:
                 epsilon0 += deps0
         else:
             epsilon0 = epsilon
     resultnorm = xp.array(resultnorm)
-    if case.save_results:
-        save_data('line_norm', resultnorm, time.strftime("%Y%m%d_%H%M"), case)
     if case.plot_results:
         plt.semilogy(resultnorm[:, 0], resultnorm[:, 1], linewidth=2)
         plt.show()
