@@ -1,22 +1,22 @@
 import numpy as xp
 from numpy import linalg as LA
-from numpy.fft import fftn, ifftn, fftfreq, fftshift, ifftshift
+from numpy.fft import rfftn, irfftn, fftn, ifftn, fftfreq, fftshift, ifftshift
 import convergence as cv
 import time
 import warnings
 warnings.filterwarnings("ignore")
 
 def main():
-	# dict_params = {
-	# 	'n_min': 2 ** 4,
-	# 	'n_max': 2 ** 8,
-	# 	'omega0': [0.618033988749895, -1.0],
-	# 	'Omega': [1.0, 0.0],
-	# 	'potential': 'pot1_2d',
-	# 	'eps_region': [[0.0, 0.35], [0, 0.12]],
-	# 	'eps_line': [0.0, 0.03],
-	# 	'eps_modes': [1, 1],
-	# 	'eps_dir' : [1, 1]}
+	dict_params = {
+		'n_min': 2 ** 4,
+		'n_max': 2 ** 10,
+		'omega0': [0.618033988749895, -1.0],
+		'Omega': [1.0, 0.0],
+		'potential': 'pot1_2d',
+		'eps_region': [[0.0, 0.35], [0, 0.12]],
+		'eps_line': [0.0, 0.028],
+		'eps_modes': [1, 1],
+		'eps_dir' : [1, 1]}
 	# dict_params = {
 	# 	'n_min': 2 ** 4,
 	#   'n_max': 2 ** 12,
@@ -31,21 +31,21 @@ def main():
 	# 	'Omega': [1.0, 0.0],
 	# 	'potential': 'pot1_2d',
 	# 	'eps_region': [[0, 0.06], [0, 0.2]]}
-	dict_params = {
-		'n_min': 2 ** 5,
-		'n_max': 2 ** 9,
-		'omega0': [1.324717957244746, 1.754877666246693, 1.0],
-		'Omega': [1.0, 1.0, -1.0],
-		'potential': 'pot1_3d',
-		'eps_region': [[0.0, 0.15], [0.0,  0.40], [0.1, 0.1]],
-		'eps_line': [0, 0.045],
-		'eps_modes': [1, 1, 0],
-		'eps_dir': [1, 5, 0.1]}
+	# dict_params = {
+	# 	'n_min': 2 ** 4,
+	# 	'n_max': 2 ** 8,
+	# 	'omega0': [1.324717957244746, 1.754877666246693, 1.0],
+	# 	'Omega': [1.0, 1.0, -1.0],
+	# 	'potential': 'pot1_3d',
+	# 	'eps_region': [[0.0, 0.15], [0.0,  0.40], [0.1, 0.1]],
+	# 	'eps_line': [0, 0.045],
+	# 	'eps_modes': [1, 1, 0],
+	# 	'eps_dir': [1, 5, 0.1]}
 	dict_params.update({
-	    'tolmin': 1e-6,
-	    'threshold': 1e-11,
-		'tolmax': 1e30,
-		'maxiter': 150,
+	    'tolmin': 1e-8,
+	    'threshold': 1e-12,
+		'tolmax': 1e4,
+		'maxiter': 20,
 		'precision': 64,
 		'eps_n': 256,
 		'deps': 1e-4,
@@ -58,10 +58,10 @@ def main():
 		'parallelization': False,
 		'adapt_n': True,
 		'adapt_eps': False,
-		'save_results': True,
+		'save_results': False,
 		'plot_results': True})
 	dv = {
-		'pot1_2d': lambda phi, eps, Omega: Omega[0] * eps[0] * xp.sin(phi[0]) + eps[1] * (Omega[0] + Omega[1]) * xp.sin(phi[0] + phi[1]),
+		'pot1_2d': lambda phi, eps, Omega: - Omega[0] * eps[0] * xp.sin(phi[0]) - eps[1] * (Omega[0] + Omega[1]) * xp.sin(phi[0] + phi[1]),
 		'pot1_3d': lambda phi, eps, Omega: - Omega[0] * eps[0] * xp.sin(phi[0]) - Omega[1] * eps[1] * xp.sin(phi[1]) - Omega[2] * eps[2] * xp.sin(phi[2])
 		}.get(dict_params['potential'], 'pot1_2d')
 	case = ConfKAM(dv, dict_params)
@@ -99,43 +99,54 @@ class ConfKAM:
 		self.lk = - self.omega0_nu ** 2
 		self.sml_div = -1j * xp.divide(1.0, self.omega0_nu, where=self.omega0_nu!=0)
 		self.rescale_fft = self.precision(n ** self.dim)
-		ilk = xp.divide(1.0, self.lk, where=self.lk!=0)
-		self.initial_h = lambda eps: [- ifftn(fftn(self.dv(self.phi, eps, self.Omega)) * ilk), 0.0]
+		self.ilk = xp.divide(1.0, self.lk, where=self.lk!=0)
+		self.initial_h = lambda eps: self.set_initial_h(eps, order=1)
 		self.tail_indx = self.dim * xp.index_exp[n//4:3*n//4+1]
 		self.pad = self.dim * ((n//4, n//4),)
+
+	def set_initial_h(self, epsilon, order=1):
+		if order == 1:
+			return [- ifftn(fftn(self.dv(self.phi, epsilon, self.Omega)) * self.ilk).real, 0.0]
+		elif order == 2:
+			h0 = - ifftn(fftn(self.dv(self.phi, epsilon, self.Omega)) * self.ilk).real
+			h2 = - ifftn(fftn(self.dv(self.phi + xp.tensordot(self.Omega, h0, axes=0), epsilon, self.Omega) - self.dv(self.phi, epsilon, self.Omega)) * self.ilk).real
+			lam2 = - xp.mean(self.dv(self.phi + xp.tensordot(self.Omega, h0, axes=0), epsilon, self.Omega) - self.dv(self.phi, epsilon, self.Omega))
+			return [h0 + h2, lam2]
 
 	def refine_h(self, h, lam, eps):
 		n = h.shape[0]
 		self.set_var(n)
 		fft_h = fftn(h)
 		fft_h[xp.abs(fft_h) <= self.threshold * xp.abs(fft_h).max()] = 0.0
-		h_thresh = ifftn(fft_h)
-		arg_v = self.phi + xp.tensordot(self.Omega, h_thresh, axes=0)
+		fft_h[self.zero_] = 0.0
+		h_thresh = ifftn(fft_h).real
+		arg_v = self.phi + xp.tensordot(self.Omega, h_thresh, axes=0) % (2.0 * xp.pi)
 		fft_l = 1j * self.Omega_nu * fft_h
 		fft_l[self.zero_] = self.rescale_fft
-		lfunc = ifftn(fft_l)
-		epsilon = ifftn(self.lk * fft_h) + self.dv(arg_v, eps, self.Omega) + lam
+		lfunc = ifftn(fft_l).real
+		epsilon = ifftn(self.lk * fft_h).real + self.dv(arg_v, eps, self.Omega) + lam
 		fft_leps = fftn(lfunc * epsilon)
-		delta = - fft_leps[self.zero_] / fft_l[self.zero_]
-		w = ifftn((delta * fft_l + fft_leps) * self.sml_div)
+		delta = - fft_leps[self.zero_].real / fft_l[self.zero_].real
+		w = ifftn((delta * fft_l + fft_leps) * self.sml_div).real
 		fft_wll = fftn(w / lfunc ** 2)
 		fft_ill = fftn(1.0 / lfunc ** 2)
-		w0 = - fft_wll[self.zero_] / fft_ill[self.zero_]
-		beta = ifftn((fft_wll + w0 * fft_ill) * self.sml_div.conj())
-		h_ = xp.real(h_thresh + beta * lfunc - xp.mean(beta * lfunc) * lfunc)
-		lam_ = xp.real(lam + delta)
+		w0 = - fft_wll[self.zero_].real / fft_ill[self.zero_].real
+		beta = ifftn((fft_wll + w0 * fft_ill) * self.sml_div.conj()).real
+		h_ = h_thresh + beta * lfunc - xp.mean(beta * lfunc) * lfunc
+		lam_ = lam + delta
 		fft_h_ = fftn(h_)
 		tail_norm = xp.abs(fft_h_[self.tail_indx]).sum() / self.rescale_fft
+		fft_h_[self.zero_] = 0.0
 		fft_h_[xp.abs(fft_h_) <= self.threshold * xp.abs(fft_h_).max()] = 0.0
 		if (tail_norm >= self.threshold) and (n < self.n_max) and self.adapt_n:
-			print('warning: change of value of n (from {} to {})'.format(n, 2*n))
+			print('warning: change of value of n (from {} to {})'.format(n, 2 * n))
 			self.set_var(2 * n)
-			h = ifftn(ifftshift(xp.pad(fftshift(fft_h), self.pad))) * 2 ** self.dim
-			h_ = ifftn(ifftshift(xp.pad(fftshift(fft_h_), self.pad))) * 2 ** self.dim
+			h = ifftn(ifftshift(xp.pad(fftshift(fft_h), self.pad))).real * 2 ** self.dim
+			h_ = ifftn(ifftshift(xp.pad(fftshift(fft_h_), self.pad))).real * 2 ** self.dim
 			fft_h_ = ifftshift(xp.pad(fftshift(fft_h_), self.pad))
 		else:
-			h_ = ifftn(fft_h_)
-		arg_v = self.phi + xp.tensordot(self.Omega, h_, axes=0)
+			h_ = ifftn(fft_h_).real
+		arg_v = self.phi + xp.tensordot(self.Omega, h_, axes=0) % (2.0 * xp.pi)
 		err = xp.abs(self.lk * fft_h_ + fftn(self.dv(arg_v, eps, self.Omega) + lam)).sum() / self.rescale_fft
 		if self.monitor_grad:
 			dh_ = self.id + xp.tensordot(self.Omega, xp.gradient(h_, 2.0 * xp.pi / n), axes=0)
@@ -145,8 +156,7 @@ class ConfKAM:
 		return h_, lam_, err
 
 	def norms(self, h, r=0):
-		n = h.shape[0]
-		self.set_var(n)
+		self.set_var(h.shape[0])
 		fft_h = fftn(h)
 		return xp.sqrt(((1.0 + self.norm_nu ** 2) ** r * (xp.abs(fft_h) / self.rescale_fft) ** 2).sum()), xp.sqrt(xp.abs(ifftn(self.omega0_nu ** r * fft_h) ** 2).sum()), xp.sqrt(xp.abs(ifftn(self.Omega_nu ** r * fft_h) ** 2).sum())
 

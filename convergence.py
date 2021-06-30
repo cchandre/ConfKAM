@@ -16,11 +16,9 @@ def save_data(name, data, timestr, case, info=[]):
         savemat(type(case).__name__ + '_' + name + '_' + timestr + '.mat', mdic)
 
 
-def point(eps, case, h=[], lam=[], gethull=False, display=False):
+def point(eps, case, h, lam, gethull=False, display=False):
     h_ = h.copy()
     lam_ = lam
-    if len(h_) == 0:
-        h_, lam_ = case.initial_h(eps)
     err = 1.0
     it_count = 0
     while (case.tolmax >= err >= case.tolmin) and (it_count <= case.maxiter):
@@ -39,7 +37,6 @@ def point(eps, case, h=[], lam=[], gethull=False, display=False):
 def line_norm(case, display=True):
     timestr = time.strftime("%Y%m%d_%H%M")
     case.set_var(case.n_min)
-    eps_region = xp.array(case.eps_region)
     eps_modes = xp.array(case.eps_modes)
     eps_dir = xp.array(case.eps_dir)
     epsilon0 = case.eps_line[0]
@@ -47,7 +44,8 @@ def line_norm(case, display=True):
     h, lam = case.initial_h(epsvec)
     deps0 = case.deps
     resultnorm = []
-    while epsilon0 <= case.eps_line[1]:
+    count_fail = 0
+    while epsilon0 <= case.eps_line[1] and (count_fail <= case.maxiter):
         deps = deps0
         epsilon = epsilon0 + deps
         epsvec = epsilon * eps_modes * eps_dir + (1 - eps_modes) * eps_dir
@@ -55,39 +53,29 @@ def line_norm(case, display=True):
             h, lam = case.initial_h(epsvec)
         result, h_, lam_ = point(epsvec, case, h, lam, display=False)
         if result[0] == 1:
-            if case.choice_initial == 'continuation':
-                h = h_.copy()
-                lam = lam_
-            epsilon0 = epsilon
-            resultnorm.append(xp.concatenate((epsilon0, case.norms(h_, case.r)), axis=None))
+            resultnorm.append(xp.concatenate((epsilon, case.norms(h_, case.r)), axis=None))
             if display:
-                print([epsilon0, case.norms(h_, case.r)[0]])
+                print('For epsilon = {:.6f}, norm_{:d} = {:.3e}'.format(epsilon, case.r, case.norms(h_, case.r)[0]))
             if case.save_results:
                 save_data('line_norm', xp.array(resultnorm), timestr, case)
         elif case.adapt_eps:
-            result_temp = [0, 0]
-            while (not result_temp[0]) and deps >= case.dist_surf:
+            while (not result[0]) and deps >= case.dist_surf:
                 deps = deps / 10.0
                 epsilon = epsilon0 + deps
                 epsvec = epsilon * eps_modes * eps_dir + (1 - eps_modes) * eps_dir
-                if case.choice_initial == 'fixed':
-                    h, lam = case.initial_h(epsvec)
-                result_temp, h_, lam_ = point(epsvec, case, h, lam, display=False)
-            if result_temp[0]:
-                deps0 = deps
-                if case.choice_initial == 'continuation':
-                    h = h_.copy()
-                    lam = lam_
-                epsilon0 = epsilon
-                resultnorm.append(xp.concatenate((epsilon0, case.norms(h_, case.r)), axis=None))
+                result, h_, lam_ = point(epsvec, case, h, lam, display=False)
+            if result[0]:
+                resultnorm.append(xp.concatenate((epsilon, case.norms(h_, case.r)), axis=None))
                 if display:
-                    print([epsilon0, case.norms(h_, case.r)[0], result_temp[1]])
+                    print('For epsilon = {:.6f}, norm_{:d} = {:.3e}'.format(epsilon, case.r, case.norms(h_, case.r)[0]))
                 if case.save_results:
                     save_data('line_norm', xp.array(resultnorm), timestr, case)
             else:
-                epsilon0 += deps0
-        else:
-            epsilon0 = epsilon
+                count_fail += 1
+        if (result[0] == 1) and (case.choice_initial == 'continuation'):
+            h = h_.copy()
+            lam = lam_
+        epsilon0 = epsilon
     resultnorm = xp.array(resultnorm)
     if case.plot_results:
         plt.semilogy(resultnorm[:, 0], resultnorm[:, 1], linewidth=2)
