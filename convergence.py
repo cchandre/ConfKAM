@@ -53,6 +53,7 @@ def line_norm(case, display=True):
             h, lam = case.initial_h(epsvec)
         result, h_, lam_ = point(epsvec, case, h, lam, display=False)
         if result[0] == 1:
+            count_fail = 0
             resultnorm.append(xp.concatenate((epsilon, case.norms(h_, case.r)), axis=None))
             if display:
                 print('For epsilon = {:.6f}, norm_{:d} = {:.3e}'.format(epsilon, case.r, case.norms(h_, case.r)[0]))
@@ -65,13 +66,14 @@ def line_norm(case, display=True):
                 epsvec = epsilon * eps_modes * eps_dir + (1 - eps_modes) * eps_dir
                 result, h_, lam_ = point(epsvec, case, h, lam, display=False)
             if result[0]:
+                count_fail = 0
                 resultnorm.append(xp.concatenate((epsilon, case.norms(h_, case.r)), axis=None))
                 if display:
                     print('For epsilon = {:.6f}, norm_{:d} = {:.3e}'.format(epsilon, case.r, case.norms(h_, case.r)[0]))
                 if case.save_results:
                     save_data('line_norm', xp.array(resultnorm), timestr, case)
-            else:
-                count_fail += 1
+        if result[0] == 0:
+            count_fail += 1
         if (result[0] == 1) and (case.choice_initial == 'continuation'):
             h = h_.copy()
             lam = lam_
@@ -89,7 +91,7 @@ def line(epsilon, case, getnorm=[False, 0], display=False):
     results = []
     resultnorm = []
     for eps in tqdm(epsilon, disable=not display):
-        result, h_, lam_ = point(eps, case, h=h, lam=lam)
+        result, h_, lam_ = point(eps, case, h, lam)
         if getnorm[0]:
             resultnorm.append(case.norms(h_, getnorm[1]))
         if (result[0] == 1) and case.choice_initial == 'continuation':

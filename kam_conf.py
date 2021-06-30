@@ -2,21 +2,22 @@ import numpy as xp
 from numpy import linalg as LA
 from numpy.fft import rfftn, irfftn, fftn, ifftn, fftfreq, fftshift, ifftshift
 import convergence as cv
+import gc
 import time
 import warnings
 warnings.filterwarnings("ignore")
 
 def main():
-	dict_params = {
-		'n_min': 2 ** 4,
-		'n_max': 2 ** 10,
-		'omega0': [0.618033988749895, -1.0],
-		'Omega': [1.0, 0.0],
-		'potential': 'pot1_2d',
-		'eps_region': [[0.0, 0.35], [0, 0.12]],
-		'eps_line': [0.0, 0.028],
-		'eps_modes': [1, 1],
-		'eps_dir' : [1, 1]}
+	# dict_params = {
+	# 	'n_min': 2 ** 4,
+	# 	'n_max': 2 ** 10,
+	# 	'omega0': [0.618033988749895, -1.0],
+	# 	'Omega': [1.0, 0.0],
+	# 	'potential': 'pot1_2d',
+	# 	'eps_region': [[0.0, 0.35], [0, 0.12]],
+	# 	'eps_line': [0.0, 0.028],
+	# 	'eps_modes': [1, 1],
+	# 	'eps_dir' : [1, 1]}
 	# dict_params = {
 	# 	'n_min': 2 ** 4,
 	#   'n_max': 2 ** 12,
@@ -31,21 +32,21 @@ def main():
 	# 	'Omega': [1.0, 0.0],
 	# 	'potential': 'pot1_2d',
 	# 	'eps_region': [[0, 0.06], [0, 0.2]]}
-	# dict_params = {
-	# 	'n_min': 2 ** 4,
-	# 	'n_max': 2 ** 8,
-	# 	'omega0': [1.324717957244746, 1.754877666246693, 1.0],
-	# 	'Omega': [1.0, 1.0, -1.0],
-	# 	'potential': 'pot1_3d',
-	# 	'eps_region': [[0.0, 0.15], [0.0,  0.40], [0.1, 0.1]],
-	# 	'eps_line': [0, 0.045],
-	# 	'eps_modes': [1, 1, 0],
-	# 	'eps_dir': [1, 5, 0.1]}
+	dict_params = {
+		'n_min': 2 ** 6,
+		'n_max': 2 ** 8,
+		'omega0': [1.324717957244746, 1.754877666246693, 1.0],
+		'Omega': [1.0, 1.0, -1.0],
+		'potential': 'pot1_3d',
+		'eps_region': [[0.0, 0.15], [0.0,  0.40], [0.1, 0.1]],
+		'eps_line': [0, 0.04],
+		'eps_modes': [1, 1, 0],
+		'eps_dir': [1, 5, 0.1]}
 	dict_params.update({
-	    'tolmin': 1e-8,
-	    'threshold': 1e-12,
-		'tolmax': 1e4,
-		'maxiter': 20,
+	    'tolmin': 1e-6,
+	    'threshold': 1e-9,
+		'tolmax': 1e8,
+		'maxiter': 30,
 		'precision': 64,
 		'eps_n': 256,
 		'deps': 1e-4,
@@ -58,7 +59,7 @@ def main():
 		'parallelization': False,
 		'adapt_n': True,
 		'adapt_eps': False,
-		'save_results': False,
+		'save_results': True,
 		'plot_results': True})
 	dv = {
 		'pot1_2d': lambda phi, eps, Omega: - Omega[0] * eps[0] * xp.sin(phi[0]) - eps[1] * (Omega[0] + Omega[1]) * xp.sin(phi[0] + phi[1]),
@@ -128,26 +129,30 @@ class ConfKAM:
 		fft_leps = fftn(lfunc * epsilon)
 		delta = - fft_leps[self.zero_].real / fft_l[self.zero_].real
 		w = ifftn((delta * fft_l + fft_leps) * self.sml_div).real
+		del fft_l, fft_leps, epsilon
+		gc.collect()
 		fft_wll = fftn(w / lfunc ** 2)
 		fft_ill = fftn(1.0 / lfunc ** 2)
 		w0 = - fft_wll[self.zero_].real / fft_ill[self.zero_].real
 		beta = ifftn((fft_wll + w0 * fft_ill) * self.sml_div.conj()).real
 		h_ = h_thresh + beta * lfunc - xp.mean(beta * lfunc) * lfunc
+		del beta
+		gc.collect()
 		lam_ = lam + delta
 		fft_h_ = fftn(h_)
-		tail_norm = xp.abs(fft_h_[self.tail_indx]).sum() / self.rescale_fft
+		tail_norm = xp.abs(fft_h_[self.tail_indx]).max()
 		fft_h_[self.zero_] = 0.0
 		fft_h_[xp.abs(fft_h_) <= self.threshold * xp.abs(fft_h_).max()] = 0.0
-		if (tail_norm >= self.threshold) and (n < self.n_max) and self.adapt_n:
+		if (tail_norm >= self.threshold * xp.abs(fft_h_).max()) and (n < self.n_max) and self.adapt_n:
 			print('warning: change of value of n (from {} to {})'.format(n, 2 * n))
 			self.set_var(2 * n)
-			h = ifftn(ifftshift(xp.pad(fftshift(fft_h), self.pad))).real * 2 ** self.dim
-			h_ = ifftn(ifftshift(xp.pad(fftshift(fft_h_), self.pad))).real * 2 ** self.dim
 			fft_h_ = ifftshift(xp.pad(fftshift(fft_h_), self.pad))
+			h = ifftn(ifftshift(xp.pad(fftshift(fft_h), self.pad))).real * 2 ** self.dim
+			h_ = ifftn(fft_h_).real * 2 ** self.dim
 		else:
 			h_ = ifftn(fft_h_).real
 		arg_v = self.phi + xp.tensordot(self.Omega, h_, axes=0) % (2.0 * xp.pi)
-		err = xp.abs(self.lk * fft_h_ + fftn(self.dv(arg_v, eps, self.Omega) + lam)).sum() / self.rescale_fft
+		err = xp.abs(self.lk * fft_h_ + fftn(self.dv(arg_v, eps, self.Omega) + lam_)).sum() / self.rescale_fft
 		if self.monitor_grad:
 			dh_ = self.id + xp.tensordot(self.Omega, xp.gradient(h_, 2.0 * xp.pi / n), axes=0)
 			det_h_ = xp.abs(LA.det(xp.moveaxis(dh_, [0, 1], [-2, -1]))).min()
