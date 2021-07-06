@@ -34,7 +34,7 @@ def main():
 	# 	'eps_region': [[0, 0.06], [0, 0.2]]}
 	dict_params = {
 		'n_min': 2 ** 6,
-		'n_max': 2 ** 8,
+		'n_max': 2 ** 9,
 		'omega0': [1.324717957244746, 1.754877666246693, 1.0],
 		'Omega': [1.0, 1.0, -1.0],
 		'potential': 'pot1_3d',
@@ -60,7 +60,7 @@ def main():
 		'adapt_n': True,
 		'adapt_eps': False,
 		'save_results': True,
-		'plot_results': True})
+		'plot_results': False})
 	dv = {
 		'pot1_2d': lambda phi, eps, Omega: - Omega[0] * eps[0] * xp.sin(phi[0]) - eps[1] * (Omega[0] + Omega[1]) * xp.sin(phi[0] + phi[1]),
 		'pot1_3d': lambda phi, eps, Omega: - Omega[0] * eps[0] * xp.sin(phi[0]) - Omega[1] * eps[1] * xp.sin(phi[1]) - Omega[2] * eps[2] * xp.sin(phi[2])
