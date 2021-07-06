@@ -131,8 +131,8 @@ class ConfKAM:
 		w = ifftn((delta * fft_l + fft_leps) * self.sml_div).real
 		del fft_l, fft_leps, epsilon
 		gc.collect()
-		fft_wll = fftn(w / lfunc ** 2)
-		fft_ill = fftn(1.0 / lfunc ** 2)
+		fft_wll = fftn(w / (lfunc ** 2))
+		fft_ill = fftn(1.0 / (lfunc ** 2))
 		w0 = - fft_wll[self.zero_].real / fft_ill[self.zero_].real
 		beta = ifftn((fft_wll + w0 * fft_ill) * self.sml_div.conj()).real
 		h_ = h_thresh + beta * lfunc - xp.mean(beta * lfunc) * lfunc
@@ -147,8 +147,8 @@ class ConfKAM:
 			print('warning: change of value of n (from {} to {})'.format(n, 2 * n))
 			self.set_var(2 * n)
 			fft_h_ = ifftshift(xp.pad(fftshift(fft_h_), self.pad))
-			h = ifftn(ifftshift(xp.pad(fftshift(fft_h), self.pad))).real * 2 ** self.dim
-			h_ = ifftn(fft_h_).real * 2 ** self.dim
+			h = ifftn(ifftshift(xp.pad(fftshift(fft_h), self.pad))).real * (2 ** self.dim)
+			h_ = ifftn(fft_h_).real * (2 ** self.dim)
 		else:
 			h_ = ifftn(fft_h_).real
 		arg_v = self.phi + xp.tensordot(self.Omega, h_, axes=0) % (2.0 * xp.pi)
