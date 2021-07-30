@@ -33,8 +33,8 @@ def main():
 	# 	'potential': 'pot1_2d',
 	# 	'eps_region': [[0, 0.06], [0, 0.2]]}
 	dict_params = {
-		'n_min': 2 ** 6,
-		'n_max': 2 ** 9,
+		'n_min': 2 ** 8,
+		'n_max': 2 ** 10,
 		'omega0': [1.324717957244746, 1.754877666246693, 1.0],
 		'Omega': [1.0, 1.0, -1.0],
 		'potential': 'pot1_3d',
@@ -43,13 +43,13 @@ def main():
 		'eps_modes': [1, 1, 0],
 		'eps_dir': [1, 5, 0.1]}
 	dict_params.update({
-	    'tolmin': 1e-6,
+	    'tolmin': 1e-7,
 	    'threshold': 1e-9,
 		'tolmax': 1e8,
 		'maxiter': 30,
 		'precision': 64,
 		'eps_n': 256,
-		'deps': 1e-4,
+		'deps': 1e-5,
 		'eps_indx': [0, 1],
 		'eps_type': 'cartesian',
 		'dist_surf': 1e-5,
@@ -58,7 +58,7 @@ def main():
 		'r': 6,
 		'parallelization': False,
 		'adapt_n': True,
-		'adapt_eps': False,
+		'adapt_eps': True,
 		'save_results': True,
 		'plot_results': False})
 	dv = {
@@ -72,10 +72,10 @@ def main():
 
 class ConfKAM:
 	def __repr__(self):
-		return '{self.__class__.name__}({self.dv, self.DictParams})'.format(self=self)
+		return '{self.__class__.__name__}({self.dv, self.DictParams})'.format(self=self)
 
 	def __str__(self):
-		return 'KAM in configuration space ({self.__class__.name__}) with omega0 = {self.omega0} and Omega = {self.Omega}'.format(self=self)
+		return 'KAM in configuration space ({self.__class__.__name__}) with omega0 = {self.omega0} and Omega = {self.Omega}'.format(self=self)
 
 	def __init__(self, dv, dict_params):
 		for key in dict_params:
