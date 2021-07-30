@@ -60,12 +60,12 @@ def line_norm(case, display=True):
             if case.save_results:
                 save_data('line_norm', xp.array(resultnorm), timestr, case)
         elif case.adapt_eps:
-            while (not result[0]) and deps >= case.dist_surf:
+            while (result[0] == 0) and deps >= case.dist_surf:
                 deps = deps / 10.0
                 epsilon = epsilon0 + deps
                 epsvec = epsilon * eps_modes * eps_dir + (1 - eps_modes) * eps_dir
                 result, h_, lam_ = point(epsvec, case, h, lam, display=False)
-            if result[0]:
+            if result[0] == 1:
                 count_fail = 0
                 resultnorm.append(xp.concatenate((epsilon, case.norms(h_, case.r)), axis=None))
                 if display:
