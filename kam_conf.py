@@ -121,7 +121,7 @@ class ConfKAM:
 		fft_h[xp.abs(fft_h) <= self.threshold * xp.abs(fft_h).max()] = 0.0
 		fft_h[self.zero_] = 0.0
 		h_thresh = ifftn(fft_h).real
-		arg_v = self.phi + xp.tensordot(self.Omega, h_thresh, axes=0) % (2.0 * xp.pi)
+		arg_v = (self.phi + xp.tensordot(self.Omega, h_thresh, axes=0)) % (2.0 * xp.pi)
 		fft_l = 1j * self.Omega_nu * fft_h
 		fft_l[self.zero_] = self.rescale_fft
 		lfunc = ifftn(fft_l).real
@@ -151,7 +151,7 @@ class ConfKAM:
 			h_ = ifftn(fft_h_).real * (2 ** self.dim)
 		else:
 			h_ = ifftn(fft_h_).real
-		arg_v = self.phi + xp.tensordot(self.Omega, h_, axes=0) % (2.0 * xp.pi)
+		arg_v = (self.phi + xp.tensordot(self.Omega, h_, axes=0)) % (2.0 * xp.pi)
 		err = xp.abs(self.lk * fft_h_ + fftn(self.dv(arg_v, eps, self.Omega) + lam_)).sum() / self.rescale_fft
 		if self.monitor_grad:
 			dh_ = self.id + xp.tensordot(self.Omega, xp.gradient(h_, 2.0 * xp.pi / n), axes=0)
