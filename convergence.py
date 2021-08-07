@@ -135,7 +135,7 @@ def region(case):
         if case.parallelization[1] == 'all':
             num_cores = multiprocess.cpu_count()
         else:
-            num_cores = case.parallelization[1]
+            num_cores = min(multiprocess.cpu_count(), case.parallelization[1])
         pool = multiprocess.Pool(num_cores)
         line_ = lambda it: line(eps_list[it], case)
         for conv, iter in tqdm(pool.imap(line_, iterable=range(case.eps_n)), total=case.eps_n):
