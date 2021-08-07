@@ -33,8 +33,8 @@ def main():
 	# 	'potential': 'pot1_2d',
 	# 	'eps_region': [[0, 0.06], [0, 0.2]]}
 	dict_params = {
-		'n_min': 2 ** 8,
-		'n_max': 2 ** 10,
+		'n_min': 2 ** 9,
+		'n_max': 2 ** 9,
 		'omega0': [1.324717957244746, 1.754877666246693, 1.0],
 		'Omega': [1.0, 1.0, -1.0],
 		'potential': 'pot1_3d',
@@ -48,7 +48,7 @@ def main():
 		'tolmax': 1e8,
 		'maxiter': 30,
 		'precision': 64,
-		'eps_n': 256,
+		'eps_n': 512,
 		'deps': 1e-5,
 		'eps_indx': [0, 1],
 		'eps_type': 'cartesian',
@@ -56,9 +56,9 @@ def main():
 		'choice_initial': 'fixed',
 		'monitor_grad': False,
 		'r': 6,
-		'parallelization': False,
-		'adapt_n': True,
-		'adapt_eps': True,
+		'parallelization': [True, 8],
+		'adapt_n': False,
+		'adapt_eps': False,
 		'save_results': True,
 		'plot_results': False})
 	dv = {
@@ -66,8 +66,8 @@ def main():
 		'pot1_3d': lambda phi, eps, Omega: - Omega[0] * eps[0] * xp.sin(phi[0]) - Omega[1] * eps[1] * xp.sin(phi[1]) - Omega[2] * eps[2] * xp.sin(phi[2])
 		}.get(dict_params['potential'], 'pot1_2d')
 	case = ConfKAM(dv, dict_params)
-	# data = cv.region(case)
-	data = cv.line_norm(case)
+	data = cv.region(case)
+	# data = cv.line_norm(case)
 
 
 class ConfKAM:
