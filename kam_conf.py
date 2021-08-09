@@ -48,7 +48,7 @@ def main():
 		'tolmax': 1e8,
 		'maxiter': 30,
 		'precision': 64,
-		'eps_n': 512,
+		'eps_n': 64,
 		'deps': 1e-5,
 		'eps_indx': [0, 1],
 		'eps_type': 'cartesian',
@@ -56,7 +56,7 @@ def main():
 		'choice_initial': 'fixed',
 		'monitor_grad': False,
 		'r': 6,
-		'parallelization': [True, 8],
+		'parallelization': [True, 32],
 		'adapt_n': False,
 		'adapt_eps': False,
 		'save_results': True,
@@ -143,16 +143,14 @@ class ConfKAM:
 		tail_norm = xp.abs(fft_h_[self.tail_indx]).max()
 		fft_h_[self.zero_] = 0.0
 		fft_h_[xp.abs(fft_h_) <= self.threshold * xp.abs(fft_h_).max()] = 0.0
-		if (tail_norm >= self.threshold * xp.abs(fft_h_).max()) and (n < self.n_max) and self.adapt_n:
+		if self.adapt_n and (tail_norm >= self.threshold * xp.abs(fft_h_).max()) and (n < self.n_max):
 			print('warning: change of value of n (from {} to {})'.format(n, 2 * n))
 			self.set_var(2 * n)
-			fft_h_ = ifftshift(xp.pad(fftshift(fft_h_), self.pad))
 			h = ifftn(ifftshift(xp.pad(fftshift(fft_h), self.pad))).real * (2 ** self.dim)
-			h_ = ifftn(fft_h_).real * (2 ** self.dim)
-		else:
-			h_ = ifftn(fft_h_).real
+			fft_h_ = ifftshift(xp.pad(fftshift(fft_h_), self.pad)) * (2 ** self.dim)
+		h_ = ifftn(fft_h_).real
 		arg_v = (self.phi + xp.tensordot(self.Omega, h_, axes=0)) % (2.0 * xp.pi)
-		err = xp.abs(self.lk * fft_h_ + fftn(self.dv(arg_v, eps, self.Omega) + lam_)).sum() / self.rescale_fft
+		err = xp.abs(self.lk * fft_h_ / self.rescale_fft + fftn(self.dv(arg_v, eps, self.Omega) / self.rescale_fft + lam_)).sum() 
 		if self.monitor_grad:
 			dh_ = self.id + xp.tensordot(self.Omega, xp.gradient(h_, 2.0 * xp.pi / n), axes=0)
 			det_h_ = xp.abs(LA.det(xp.moveaxis(dh_, [0, 1], [-2, -1]))).min()
