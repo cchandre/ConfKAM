@@ -1,6 +1,7 @@
 import numpy as xp
 from numpy import linalg as LA
 from numpy.fft import rfftn, irfftn, fftn, ifftn, fftfreq, fftshift, ifftshift
+from scipy import signal
 import convergence as cv
 import gc
 import time
@@ -33,8 +34,8 @@ def main():
 	# 	'potential': 'pot1_2d',
 	# 	'eps_region': [[0, 0.06], [0, 0.2]]}
 	dict_params = {
-		'n_min': 2 ** 8,
-		'n_max': 2 ** 8,
+		'n_min': 2 ** 6,
+		'n_max': 2 ** 6,
 		'omega0': [1.324717957244746, 1.754877666246693, 1.0],
 		'Omega': [1.0, 1.0, -1.0],
 		'potential': 'pot1_3d',
@@ -150,7 +151,7 @@ class ConfKAM:
 			fft_h_ = ifftshift(xp.pad(fftshift(fft_h_), self.pad)) * (2 ** self.dim)
 		h_ = ifftn(fft_h_).real
 		arg_v = (self.phi + xp.tensordot(self.Omega, h_, axes=0)) % (2.0 * xp.pi)
-		err = xp.abs(self.lk * fft_h_ / self.rescale_fft + fftn(self.dv(arg_v, eps, self.Omega) / self.rescale_fft + lam_)).sum() 
+		err = xp.abs(self.lk * fft_h_ / self.rescale_fft + fftn(self.dv(arg_v, eps, self.Omega) / self.rescale_fft + lam_ * signal.unit_impulse(n))).sum()
 		if self.monitor_grad:
 			dh_ = self.id + xp.tensordot(self.Omega, xp.gradient(h_, 2.0 * xp.pi / n), axes=0)
 			det_h_ = xp.abs(LA.det(xp.moveaxis(dh_, [0, 1], [-2, -1]))).min()
