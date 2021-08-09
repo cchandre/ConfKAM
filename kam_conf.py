@@ -1,7 +1,6 @@
 import numpy as xp
 from numpy import linalg as LA
 from numpy.fft import rfftn, irfftn, fftn, ifftn, fftfreq, fftshift, ifftshift
-from scipy import signal
 import convergence as cv
 import gc
 import time
@@ -19,22 +18,8 @@ def main():
 	# 	'eps_line': [0.0, 0.028],
 	# 	'eps_modes': [1, 1],
 	# 	'eps_dir' : [1, 1]}
-	# dict_params = {
-	# 	'n_min': 2 ** 4,
-	#   'n_max': 2 ** 12,
-	# 	'omega0': [0.414213562373095, -1.0],
-	# 	'Omega': [1.0, 0.0],
-	# 	'potential': 'pot1_2d',
-	# 	'eps_region': [[0, 0.12], [0, 0.225]]}
-	# dict_params = {
-	# 	'n_min': 2 ** 4,
-	#   'n_max': 2 ** 12,
-	# 	'omega0': [0.302775637731995, -1.0],
-	# 	'Omega': [1.0, 0.0],
-	# 	'potential': 'pot1_2d',
-	# 	'eps_region': [[0, 0.06], [0, 0.2]]}
 	dict_params = {
-		'n_min': 2 ** 6,
+		'n_min': 2 ** 4,
 		'n_max': 2 ** 6,
 		'omega0': [1.324717957244746, 1.754877666246693, 1.0],
 		'Omega': [1.0, 1.0, -1.0],
@@ -44,10 +29,10 @@ def main():
 		'eps_modes': [1, 1, 0],
 		'eps_dir': [1, 5, 0.1]}
 	dict_params.update({
-	    'tolmin': 1e-7,
+		'tolmax': 1e5,
+	    'tolmin': 1e-8,
 	    'threshold': 1e-9,
-		'tolmax': 1e8,
-		'maxiter': 30,
+		'maxiter': 100,
 		'precision': 64,
 		'eps_n': 64,
 		'deps': 1e-5,
@@ -57,11 +42,11 @@ def main():
 		'choice_initial': 'fixed',
 		'monitor_grad': False,
 		'r': 6,
-		'parallelization': [True, 32],
-		'adapt_n': False,
+		'parallelization': [True, 4],
+		'adapt_n': True,
 		'adapt_eps': False,
-		'save_results': True,
-		'plot_results': False})
+		'save_results': False,
+		'plot_results': True})
 	dv = {
 		'pot1_2d': lambda phi, eps, Omega: - Omega[0] * eps[0] * xp.sin(phi[0]) - eps[1] * (Omega[0] + Omega[1]) * xp.sin(phi[0] + phi[1]),
 		'pot1_3d': lambda phi, eps, Omega: - Omega[0] * eps[0] * xp.sin(phi[0]) - Omega[1] * eps[1] * xp.sin(phi[1]) - Omega[2] * eps[2] * xp.sin(phi[2])
@@ -85,7 +70,7 @@ class ConfKAM:
 		self.precision = {32: xp.float32, 64: xp.float64, 128: xp.float128}.get(self.precision, xp.float64)
 		self.dv = dv
 		self.dim = len(self.omega0)
-		self.id = xp.reshape(xp.identity(self.dim), 2 * (self.dim, ) + self.dim * (1,))
+		self.id = xp.reshape(xp.identity(self.dim), 2 * (self.dim,) + self.dim * (1,))
 		self.omega0 = xp.array(self.omega0, dtype=self.precision)
 		self.Omega = xp.array(self.Omega, dtype=self.precision)
 		self.zero_ = self.dim * (0,)
@@ -99,59 +84,60 @@ class ConfKAM:
 		self.omega0_nu = xp.einsum('i,i...->...', self.omega0, nu)
 		self.Omega_nu = xp.einsum('i,i...->...', self.Omega, nu)
 		self.lk = - self.omega0_nu ** 2
-		self.sml_div = -1j * xp.divide(1.0, self.omega0_nu, where=self.omega0_nu!=0)
+		self.sml_div = -1j * xp.divide(1.0, self.omega0_nu, where=self.omega0_nu!=0.0)
+		self.sml_div[self.zero_] = 0.0
 		self.rescale_fft = self.precision(n ** self.dim)
-		self.ilk = xp.divide(1.0, self.lk, where=self.lk!=0)
+		self.ilk = xp.divide(1.0, self.lk, where=self.lk!=0.0)
+		self.ilk[self.zero_] = 0.0
 		self.initial_h = lambda eps: self.set_initial_h(eps, order=1)
 		self.tail_indx = self.dim * xp.index_exp[n//4:3*n//4+1]
 		self.pad = self.dim * ((n//4, n//4),)
 
 	def set_initial_h(self, epsilon, order=1):
+		h0 = - ifftn(fftn(self.dv(self.phi, epsilon, self.Omega)) * self.ilk).real
 		if order == 1:
-			return [- ifftn(fftn(self.dv(self.phi, epsilon, self.Omega)) * self.ilk).real, 0.0]
+			return [h0, 0.0]
 		elif order == 2:
-			h0 = - ifftn(fftn(self.dv(self.phi, epsilon, self.Omega)) * self.ilk).real
-			h2 = - ifftn(fftn(self.dv(self.phi + xp.tensordot(self.Omega, h0, axes=0), epsilon, self.Omega) - self.dv(self.phi, epsilon, self.Omega)) * self.ilk).real
-			lam2 = - xp.mean(self.dv(self.phi + xp.tensordot(self.Omega, h0, axes=0), epsilon, self.Omega) - self.dv(self.phi, epsilon, self.Omega))
-			return [h0 + h2, lam2]
+			diff_v = self.dv(self.phi + xp.tensordot(self.Omega, h0, axes=0), epsilon, self.Omega) - self.dv(self.phi, epsilon, self.Omega)
+			return [h0 - ifftn(fftn(diff_v) * self.ilk).real, - xp.mean(diff_v)]
 
 	def refine_h(self, h, lam, eps):
 		n = h.shape[0]
 		self.set_var(n)
 		fft_h = fftn(h)
-		fft_h[xp.abs(fft_h) <= self.threshold * xp.abs(fft_h).max()] = 0.0
+		fft_h[xp.abs(fft_h) <= self.threshold] = 0.0
 		fft_h[self.zero_] = 0.0
 		h_thresh = ifftn(fft_h).real
 		arg_v = (self.phi + xp.tensordot(self.Omega, h_thresh, axes=0)) % (2.0 * xp.pi)
 		fft_l = 1j * self.Omega_nu * fft_h
 		fft_l[self.zero_] = self.rescale_fft
-		lfunc = ifftn(fft_l).real
+		l = ifftn(fft_l).real
 		epsilon = ifftn(self.lk * fft_h).real + self.dv(arg_v, eps, self.Omega) + lam
-		fft_leps = fftn(lfunc * epsilon)
+		fft_leps = fftn(l * epsilon)
 		delta = - fft_leps[self.zero_].real / fft_l[self.zero_].real
 		w = ifftn((delta * fft_l + fft_leps) * self.sml_div).real
 		del fft_l, fft_leps, epsilon
 		gc.collect()
-		fft_wll = fftn(w / (lfunc ** 2))
-		fft_ill = fftn(1.0 / (lfunc ** 2))
+		fft_wll = fftn(w / (l ** 2))
+		fft_ill = fftn(1.0 / (l ** 2))
 		w0 = - fft_wll[self.zero_].real / fft_ill[self.zero_].real
 		beta = ifftn((fft_wll + w0 * fft_ill) * self.sml_div.conj()).real
-		h_ = h_thresh + beta * lfunc - xp.mean(beta * lfunc) * lfunc
+		h_ = h_thresh + beta * l - xp.mean(beta * l) * l / xp.mean(l)
 		del beta
 		gc.collect()
 		lam_ = lam + delta
 		fft_h_ = fftn(h_)
 		tail_norm = xp.abs(fft_h_[self.tail_indx]).max()
 		fft_h_[self.zero_] = 0.0
-		fft_h_[xp.abs(fft_h_) <= self.threshold * xp.abs(fft_h_).max()] = 0.0
+		fft_h_[xp.abs(fft_h_) <= self.threshold] = 0.0
 		if self.adapt_n and (tail_norm >= self.threshold * xp.abs(fft_h_).max()) and (n < self.n_max):
-			print('warning: change of value of n (from {} to {})'.format(n, 2 * n))
-			self.set_var(2 * n)
+			n *= 2
+			self.set_var(n)
 			h = ifftn(ifftshift(xp.pad(fftshift(fft_h), self.pad))).real * (2 ** self.dim)
 			fft_h_ = ifftshift(xp.pad(fftshift(fft_h_), self.pad)) * (2 ** self.dim)
 		h_ = ifftn(fft_h_).real
 		arg_v = (self.phi + xp.tensordot(self.Omega, h_, axes=0)) % (2.0 * xp.pi)
-		err = xp.abs(self.lk * fft_h_ / self.rescale_fft + fftn(self.dv(arg_v, eps, self.Omega) / self.rescale_fft + lam_ * signal.unit_impulse(n))).sum()
+		err = xp.abs(ifftn(self.lk * fft_h_).real + self.dv(arg_v, eps, self.Omega) + lam_).max()
 		if self.monitor_grad:
 			dh_ = self.id + xp.tensordot(self.Omega, xp.gradient(h_, 2.0 * xp.pi / n), axes=0)
 			det_h_ = xp.abs(LA.det(xp.moveaxis(dh_, [0, 1], [-2, -1]))).min()
