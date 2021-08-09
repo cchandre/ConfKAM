@@ -33,8 +33,8 @@ def main():
 	# 	'potential': 'pot1_2d',
 	# 	'eps_region': [[0, 0.06], [0, 0.2]]}
 	dict_params = {
-		'n_min': 2 ** 9,
-		'n_max': 2 ** 9,
+		'n_min': 2 ** 8,
+		'n_max': 2 ** 8,
 		'omega0': [1.324717957244746, 1.754877666246693, 1.0],
 		'Omega': [1.0, 1.0, -1.0],
 		'potential': 'pot1_3d',
@@ -163,7 +163,7 @@ class ConfKAM:
 	def norms(self, h, r=0):
 		self.set_var(h.shape[0])
 		fft_h = fftn(h)
-		return xp.sqrt(((1.0 + self.norm_nu ** 2) ** r * (xp.abs(fft_h) / self.rescale_fft) ** 2).sum()), xp.sqrt(xp.abs(ifftn(self.omega0_nu ** r * fft_h) ** 2).sum()), xp.sqrt(xp.abs(ifftn(self.Omega_nu ** r * fft_h) ** 2).sum())
+		return xp.sqrt((self.norm_nu ** (2 * r) * (xp.abs(fft_h) / self.rescale_fft) ** 2).sum()), xp.sqrt(xp.abs(ifftn(self.omega0_nu ** r * fft_h) ** 2).sum()), xp.sqrt(xp.abs(ifftn(self.Omega_nu ** r * fft_h) ** 2).sum())
 
 if __name__ == "__main__":
 	main()
