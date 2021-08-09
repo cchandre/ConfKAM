@@ -1,9 +1,8 @@
 import numpy as xp
 from numpy import linalg as LA
-from numpy.fft import rfftn, irfftn, fftn, ifftn, fftfreq, fftshift, ifftshift
+from numpy.fft import fftn, ifftn, fftfreq, fftshift, ifftshift
 import convergence as cv
 import gc
-import time
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -19,8 +18,8 @@ def main():
 	# 	'eps_modes': [1, 1],
 	# 	'eps_dir' : [1, 1]}
 	dict_params = {
-		'n_min': 2 ** 4,
-		'n_max': 2 ** 6,
+		'n_min': 2 ** 7,
+		'n_max': 2 ** 7,
 		'omega0': [1.324717957244746, 1.754877666246693, 1.0],
 		'Omega': [1.0, 1.0, -1.0],
 		'potential': 'pot1_3d',
@@ -43,7 +42,7 @@ def main():
 		'monitor_grad': False,
 		'r': 6,
 		'parallelization': [True, 4],
-		'adapt_n': True,
+		'adapt_n': False,
 		'adapt_eps': False,
 		'save_results': False,
 		'plot_results': True})
@@ -70,10 +69,10 @@ class ConfKAM:
 		self.precision = {32: xp.float32, 64: xp.float64, 128: xp.float128}.get(self.precision, xp.float64)
 		self.dv = dv
 		self.dim = len(self.omega0)
+		self.zero_ = self.dim * (0,)
 		self.id = xp.reshape(xp.identity(self.dim), 2 * (self.dim,) + self.dim * (1,))
 		self.omega0 = xp.array(self.omega0, dtype=self.precision)
 		self.Omega = xp.array(self.Omega, dtype=self.precision)
-		self.zero_ = self.dim * (0,)
 
 	def set_var(self, n):
 		ind_nu = self.dim * (fftfreq(n, d=1.0/self.precision(n)),)
@@ -83,17 +82,17 @@ class ConfKAM:
 		self.norm_nu = LA.norm(nu, axis=0)
 		self.omega0_nu = xp.einsum('i,i...->...', self.omega0, nu)
 		self.Omega_nu = xp.einsum('i,i...->...', self.Omega, nu)
-		self.lk = - self.omega0_nu ** 2
-		self.sml_div = -1j * xp.divide(1.0, self.omega0_nu, where=self.omega0_nu!=0.0)
+		self.sml_div = - 1j * xp.divide(1.0, self.omega0_nu, where=self.omega0_nu!=0.0)
 		self.sml_div[self.zero_] = 0.0
-		self.rescale_fft = self.precision(n ** self.dim)
+		self.lk = - self.omega0_nu ** 2
 		self.ilk = xp.divide(1.0, self.lk, where=self.lk!=0.0)
 		self.ilk[self.zero_] = 0.0
-		self.initial_h = lambda eps: self.set_initial_h(eps, order=1)
+		self.rescale_fft = self.precision(n ** self.dim)
 		self.tail_indx = self.dim * xp.index_exp[n//4:3*n//4+1]
 		self.pad = self.dim * ((n//4, n//4),)
 
-	def set_initial_h(self, epsilon, order=1):
+	def initial_h(self, epsilon, n, order=1):
+		self.set_var(n)
 		h0 = - ifftn(fftn(self.dv(self.phi, epsilon, self.Omega)) * self.ilk).real
 		if order == 1:
 			return [h0, 0.0]
@@ -148,7 +147,7 @@ class ConfKAM:
 	def norms(self, h, r=0):
 		self.set_var(h.shape[0])
 		fft_h = fftn(h)
-		return xp.sqrt((self.norm_nu ** (2 * r) * (xp.abs(fft_h) / self.rescale_fft) ** 2).sum()), xp.sqrt(xp.abs(ifftn(self.omega0_nu ** r * fft_h) ** 2).sum()), xp.sqrt(xp.abs(ifftn(self.Omega_nu ** r * fft_h) ** 2).sum())
+		return xp.sqrt((self.norm_nu ** (2 * r) * (xp.abs(fft_h) / self.rescale_fft) ** 2).sum()), xp.sqrt((xp.abs(ifftn(self.omega0_nu ** r * fft_h)) ** 2).sum()), xp.sqrt((xp.abs(ifftn(self.Omega_nu ** r * fft_h)) ** 2).sum())
 
 if __name__ == "__main__":
 	main()

@@ -36,12 +36,11 @@ def point(eps, case, h, lam, gethull=False, display=False):
 
 def line_norm(case, display=True):
     timestr = time.strftime("%Y%m%d_%H%M")
-    case.set_var(case.n_min)
     eps_modes = xp.array(case.eps_modes)
     eps_dir = xp.array(case.eps_dir)
     epsilon0 = case.eps_line[0]
     epsvec = epsilon0 * eps_modes * eps_dir + (1 - eps_modes) * eps_dir
-    h, lam = case.initial_h(epsvec)
+    h, lam = case.initial_h(epsvec, case.n_min)
     deps0 = case.deps
     resultnorm = []
     count_fail = 0
@@ -50,7 +49,7 @@ def line_norm(case, display=True):
         epsilon = epsilon0 + deps
         epsvec = epsilon * eps_modes * eps_dir + (1 - eps_modes) * eps_dir
         if case.choice_initial == 'fixed':
-            h, lam = case.initial_h(epsvec)
+            h, lam = case.initial_h(epsvec, h.shape[0])
         result, h_, lam_ = point(epsvec, case, h, lam, display=False)
         if result[0] == 1:
             count_fail = 0
@@ -86,8 +85,7 @@ def line_norm(case, display=True):
 
 
 def line(epsilon, case, getnorm=[False, 0], display=False):
-    case.set_var(case.n_min)
-    h, lam = case.initial_h(epsilon[0])
+    h, lam = case.initial_h(epsilon[0], case.n_min)
     results = []
     resultnorm = []
     for eps in tqdm(epsilon, disable=not display):
@@ -98,7 +96,7 @@ def line(epsilon, case, getnorm=[False, 0], display=False):
             h = h_.copy()
             lam = lam_
         elif case.choice_initial == 'fixed':
-            h, lam = case.initial_h(eps)
+            h, lam = case.initial_h(eps, h_.shape[0])
         results.append(result)
     if getnorm[0]:
         if case.save_results:
