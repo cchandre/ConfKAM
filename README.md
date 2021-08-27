@@ -4,7 +4,7 @@
 
 - [`ConfKAM.py`](https://github.com/cchandre/ConfKAM/blob/main/ConfKAM.py): contains the ConfKAM classes and main functions defining the ConfKAM map
 
-- [`ConfKAM_modules.py`](https://github.com/cchandre/ConfKAMG/blob/main/ConfKAM_modules.py): contains the methods to execute the ConfKAM map
+- [`ConfKAM_modules.py`](https://github.com/cchandre/ConfKAM/blob/main/ConfKAM_modules.py): contains the methods to execute the ConfKAM map
 
 Once [`ConfKAM_dict.py`](https://github.com/cchandre/ConfKAM/blob/main/ConfKAM_dict.py) has been edited with the relevant parameters, run the file as 
 ```sh
