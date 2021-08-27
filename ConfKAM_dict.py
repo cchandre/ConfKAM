@@ -42,45 +42,44 @@
 ########################################################################################################################
 import numpy as xp
 
-Method = 'region'
-# Method = 'line_norm'
-Nxy = 32
-
-# omega0 = [(xp.sqrt(5) - 1) / 2, -1]
-# Omega = [1, 0]
-# dv = lambda phi, eps, omega: - omega[0] * eps[0] * xp.sin(phi[0]) - eps[1] * (omega[0] + omega[1]) * xp.sin(phi[0] + phi[1])
-# eps_region = [[0.0, 0.35], [0, 0.12]]
-# eps_indx = [0, 1]
-# eps_line = [0.0, 0.028]
-# eps_modes = [1, 1]
-# eps_dir = [1, 1]
-
-sigma = 1.324717957244746
-omega0 = [sigma, sigma ** 2, 1]
-Omega = [1, 1, -1]
-dv = lambda phi, eps, omega: - omega[0] * eps[0] * xp.sin(phi[0]) - omega[1] * eps[1] * xp.sin(phi[1]) - omega[2] * eps[2] * xp.sin(phi[2])
-eps_region = [[0.0, 0.15], [0.0,  0.40], [0.1, 0.1]]
-eps_indx = [0, 1]
-eps_line = [0.0, 0.05]
-eps_modes = [1, 1, 0]
-eps_dir = [1, 5, 0.1]
-
+#Method = 'region'
+Method = 'line_norm'
+Nxy = 10000
 r = 4
 
-AdaptL = False
-Lmin = 2 ** 6
-Lmax = 2 ** 6
+omega0 = [(xp.sqrt(5) - 1) / 2, -1]
+Omega = [1, 0]
+dv = lambda phi, eps, omega: - omega[0] * eps[0] * xp.sin(phi[0]) - eps[1] * (omega[0] + omega[1]) * xp.sin(phi[0] + phi[1])
+eps_region = [[0.0, 0.35], [0, 0.12]]
+eps_indx = [0, 1]
+eps_line = [0.0, 0.028]
+eps_modes = [1, 1]
+eps_dir = [1, 1]
 
-TolMax = 1e+10
-TolMin = 1e-6
-Threshold = 1e-7
+# sigma = 1.324717957244746
+# omega0 = [sigma, sigma ** 2, 1]
+# Omega = [1, 1, -1]
+# dv = lambda phi, eps, omega: - omega[0] * eps[0] * xp.sin(phi[0]) - omega[1] * eps[1] * xp.sin(phi[1]) - omega[2] * eps[2] * xp.sin(phi[2])
+# eps_region = [[0.0, 0.15], [0.0,  0.40], [0.1, 0.1]]
+# eps_indx = [0, 1]
+# eps_line = [0.0, 0.05]
+# eps_modes = [1, 1, 0]
+# eps_dir = [1, 5, 0.1]
+
+AdaptL = True
+Lmin = 2 ** 5
+Lmax = 2 ** 12
+
+TolMax = 1e+30
+TolMin = 1e-9
+Threshold = 1e-12
 MaxIter = 100
 
 Type = 'cartesian'
 ChoiceInitial = 'fixed'
 
 AdaptEps = False
-MinEps = 1e-5
+MinEps = 1e-8
 MonitorGrad = False
 
 Precision = 64

@@ -45,14 +45,10 @@ class ConfKAM:
 		self.tail_indx = self.dim * xp.index_exp[n//4:3*n//4+1]
 		self.pad = self.dim * ((n//4, n//4),)
 
-	def initial_h(self, epsilon, n, order=1):
+	def initial_h(self, epsilon, n):
 		self.set_var(n)
-		h0 = - ifftn(fftn(self.dv(self.phi, epsilon, self.Omega)) * self.ilk).real
-		if order == 1:
-			return [h0, 0.0]
-		elif order == 2:
-			diff_v = self.dv(self.phi + xp.tensordot(self.Omega, h0, axes=0), epsilon, self.Omega) - self.dv(self.phi, epsilon, self.Omega)
-			return [h0 - ifftn(fftn(diff_v) * self.ilk).real, - xp.mean(diff_v)]
+		h = - ifftn(fftn(self.dv(self.phi, epsilon, self.Omega)) * self.ilk).real
+		return [h, 0.0]
 
 	def refine_h(self, h, lam, eps):
 		n = h.shape[0]

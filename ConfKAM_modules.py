@@ -58,11 +58,11 @@ def line_norm(case, display=True):
             count_fail = 0
             resultnorm.append(xp.concatenate((epsilon, case.norms(h_, case.r)), axis=None))
             if display:
-                print('\033[90m        epsilon = {:.6f}, norm_{:d} = {:.3e} \033[00m'.format(epsilon, case.r, case.norms(h_, case.r)[0]))
+                print('\033[90m        epsilon={:.6f}    norm_{:d}={:.3e} \033[00m'.format(epsilon, case.r, case.norms(h_, case.r)[0]))
             save_data('line_norm', xp.array(resultnorm), timestr, case)
         elif case.AdaptEps:
             while (result[0] == 0) and deps >= case.MinEps:
-                deps = deps / 10.0
+                deps = deps / 2.0
                 epsilon = epsilon0 + deps
                 epsvec = epsilon * eps_modes * eps_dir + (1 - eps_modes) * eps_dir
                 result, h_, lam_ = point(epsvec, case, h, lam, display=False)
@@ -70,38 +70,31 @@ def line_norm(case, display=True):
                 count_fail = 0
                 resultnorm.append(xp.concatenate((epsilon, case.norms(h_, case.r)), axis=None))
                 if display:
-                    print('For epsilon = {:.6f}, norm_{:d} = {:.3e}'.format(epsilon, case.r, case.norms(h_, case.r)[0]))
+                    print('\033[90m        epsilon={:.6f}    norm_{:d}={:.3e} \033[00m'.format(epsilon, case.r, case.norms(h_, case.r)[0]))
                 save_data('line_norm', xp.array(resultnorm), timestr, case)
         if result[0] == 0:
             count_fail += 1
         if (result[0] == 1) and (case.ChoiceInitial == 'continuation'):
-            h = h_.copy()
-            lam = lam_
+            h, lam = h_.copy(), lam_
         epsilon0 = epsilon
     resultnorm = xp.array(resultnorm)
     if case.PlotResults:
-        plt.semilogy(resultnorm[:, 0], resultnorm[:, 1], linewidth=2)
+        fig, ax = plt.subplots(1, 1)
+        ax.semilogy(resultnorm[:, 0], resultnorm[:, 1], linewidth=2)
+        ax.set_xlabel('$\epsilon$')
+        ax.set_ylabel('$\Vert h \Vert_{}$'.format(case.r))
     return resultnorm
 
-def line(epsilon, case, getnorm=[False, 0], display=False):
+def line(epsilon, case, display=False):
     h, lam = case.initial_h(epsilon[0], case.Lmin)
     results = []
-    resultnorm = []
     for eps in tqdm(epsilon, disable=not display):
         result, h_, lam_ = point(eps, case, h, lam)
-        if getnorm[0]:
-            resultnorm.append(case.norms(h_, getnorm[1]))
         if (result[0] == 1) and case.ChoiceInitial == 'continuation':
-            h = h_.copy()
-            lam = lam_
+            h, lam = h_.copy(), lam_
         elif case.ChoiceInitial == 'fixed':
             h, lam = case.initial_h(eps, h_.shape[0])
         results.append(result)
-    if getnorm[0]:
-        save_data('line_norm', xp.array(resultnorm), time.strftime("%Y%m%d_%H%M"), case, info=epsilon)
-        if case.PlotResults:
-            plt.plot(xp.array(resultnorm))
-        return xp.array(resultnorm)
     return xp.array(results)[:, 0], xp.array(results)[:, 1]
 
 def region(case):
