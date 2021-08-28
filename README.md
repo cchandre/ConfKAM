@@ -49,7 +49,7 @@ ___
 - *Precision*: 32, 64 or 128; precision of calculations (default=64)                  
 - *SaveData*: boolean; if True, the results are saved in a `.mat` file               
 - *PlotResults*: boolean; if True, the results are plotted right after the computation              
-- *Parallelization*: 2d array [boolean, int]; True for parallelization, int is the number of processors to be used
+- *Parallelization*: 2d array [boolean, int]; True for parallelization, int is the number of cores to be used (set int='all' for all of the cores)
 ####
 ---
 For more information: <cristel.chandre@univ-amu.fr>
