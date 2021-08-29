@@ -44,7 +44,7 @@ def line_norm(case, display=True):
     epsilon0 = case.eps_line[0]
     epsvec = epsilon0 * eps_modes * eps_dir + (1 - eps_modes) * eps_dir
     h, lam = case.initial_h(epsvec, case.Lmin)
-    deps0 = 1.0 / case.Precision(case.Nxy)
+    deps0 = (case.eps_line[1] - case.eps_line[0]) / case.Precision(case.Nxy)
     resultnorm = []
     count_fail = 0
     while epsilon0 <= case.eps_line[1] and (count_fail <= case.MaxIter):

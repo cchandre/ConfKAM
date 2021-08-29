@@ -1,6 +1,7 @@
 import numpy as xp
 from numpy import linalg as LA
 from numpy.fft import fftn, ifftn, fftfreq, fftshift, ifftshift
+from scipy.optimize import root
 import matplotlib.pyplot as plt
 from ConfKAM_modules import line_norm, region
 from ConfKAM_dict import dict
@@ -45,10 +46,19 @@ class ConfKAM:
 		self.tail_indx = self.dim * xp.index_exp[n//4:3*n//4+1]
 		self.pad = self.dim * ((n//4, n//4),)
 
-	def initial_h(self, epsilon, n):
+	def initial_h(self, eps, n):
 		self.set_var(n)
-		h = - ifftn(fftn(self.dv(self.phi, epsilon, self.Omega)) * self.ilk).real
-		return [h, 0.0]
+		h = - ifftn(fftn(self.dv(self.phi, eps, self.Omega)) * self.ilk).real
+		sol = root(self.conjug_eq, h.flatten(), args=(eps, n), method='krylov')
+		if sol.success:
+			return [sol.x.reshape((n, n)), 0.0]
+		else:
+			return [h, 0.0]
+
+	def conjug_eq(self, hf, eps, n):
+		h = hf.reshape(self.dim * (n,))
+		arg_v = (self.phi + xp.tensordot(self.Omega, h, axes=0)) % (2.0 * xp.pi)
+		return (ifftn(self.lk * fftn(h)).real + self.dv(arg_v, eps, self.Omega)).flatten()
 
 	def refine_h(self, h, lam, eps):
 		n = h.shape[0]
