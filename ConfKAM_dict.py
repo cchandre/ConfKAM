@@ -29,6 +29,7 @@
 ##                                                                                                                    ##
 ##   Type: 'cartesian', 'polar'; type of computation for 2d plots                                                     ##
 ##   ChoiceInitial: 'fixed', 'continuation'; method for the initial conditions of the Newton method                   ##
+##   MethodInitial: 'zero', 'one_step'; method to generate the initial conditions for the Newton iteration            ##
 ##                                                                                                                    ##
 ##   AdaptEps: boolean; if True adapt the increment of eps in line_norm()                                             ##
 ##   MinEps: float; minimum value of the increment of eps if AdaptEps=True                                            ##
@@ -44,7 +45,7 @@ import numpy as xp
 
 #Method = 'region'
 Method = 'line_norm'
-Nxy = 10000
+Nxy = 500
 r = 4
 
 omega0 = [(xp.sqrt(5) - 1) / 2, -1]
@@ -66,20 +67,21 @@ eps_dir = [1, 1]
 # eps_modes = [1, 1, 0]
 # eps_dir = [1, 5, 0.1]
 
-AdaptL = True
-Lmin = 2 ** 5
-Lmax = 2 ** 12
+AdaptL = False
+Lmin = 2 ** 7
+Lmax = 2 ** 10
 
 TolMax = 1e+30
 TolMin = 1e-9
-Threshold = 1e-12
-MaxIter = 50
+Threshold = 1e-13
+MaxIter = 100
 
 Type = 'cartesian'
-ChoiceInitial = 'fixed'
+ChoiceInitial = 'continuation'
+MethodInitial = 'one_step'
 
-AdaptEps = False
-MinEps = 1e-8
+AdaptEps = True
+MinEps = 1e-7
 MonitorGrad = False
 
 Precision = 64
@@ -112,6 +114,7 @@ dict.update({
 		'MaxIter': MaxIter,
 		'Type': Type,
 		'ChoiceInitial': ChoiceInitial,
+        'MethodInitial': MethodInitial,
 		'AdaptEps': AdaptEps,
 		'MinEps': MinEps,
 		'MonitorGrad': MonitorGrad,

@@ -46,19 +46,23 @@ class ConfKAM:
 		self.tail_indx = self.dim * xp.index_exp[n//4:3*n//4+1]
 		self.pad = self.dim * ((n//4, n//4),)
 
-	def initial_h(self, eps, n):
+	def initial_h(self, eps, n, method='one_step'):
 		self.set_var(n)
-		h = - ifftn(fftn(self.dv(self.phi, eps, self.Omega)) * self.ilk).real
-		sol = root(self.conjug_eq, h.flatten(), args=(eps, n), method='krylov')
-		if sol.success:
-			return [sol.x.reshape((n, n)), 0.0]
+		if method == 'zero':
+			return [xp.zeros_like(self.lk), 0.0]
+		elif method == 'one_step':
+			return [- ifftn(fftn(self.dv(self.phi, eps, self.Omega)) * self.ilk).real, 0.0]
 		else:
-			return [h, 0.0]
+			h = - ifftn(fftn(self.dv(self.phi, eps, self.Omega)) * self.ilk).real
+			sol = root(self.conjug_eq, h.flatten(), args=(eps, n), method=method, options={'fatol': 1e-9})
+			if sol.success:
+				return [sol.x.reshape((n, n)), 0.0]
+			else:
+				return [h, 0.0]
 
-	def conjug_eq(self, hf, eps, n):
-		h = hf.reshape(self.dim * (n,))
-		arg_v = (self.phi + xp.tensordot(self.Omega, h, axes=0)) % (2.0 * xp.pi)
-		return (ifftn(self.lk * fftn(h)).real + self.dv(arg_v, eps, self.Omega)).flatten()
+	def conjug_eq(self, h, eps, n):
+		arg_v = self.phi + xp.tensordot(self.Omega, h.reshape(self.dim * (n,)), axes=0)
+		return (ifftn(self.lk * fftn(h.reshape(self.dim * (n,)))).real + self.dv(arg_v, eps, self.Omega)).flatten()
 
 	def refine_h(self, h, lam, eps):
 		n = h.shape[0]

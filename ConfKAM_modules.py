@@ -20,9 +20,7 @@ plt.rcParams.update({
     'image.cmap': 'bwr'})
 
 def point(eps, case, h, lam, gethull=False, display=False):
-    h_ = h.copy()
-    lam_ = lam
-    err = 1.0
+    h_, lam_, err = h.copy(), lam, 1.0
     it_count = 0
     while (case.TolMax >= err >= case.TolMin) and (it_count <= case.MaxIter):
         h_, lam_, err = case.refine_h(h_, lam_, eps)
@@ -43,16 +41,15 @@ def line_norm(case, display=True):
     eps_dir = xp.array(case.eps_dir)
     epsilon0 = case.eps_line[0]
     epsvec = epsilon0 * eps_modes * eps_dir + (1 - eps_modes) * eps_dir
-    h, lam = case.initial_h(epsvec, case.Lmin)
-    deps0 = (case.eps_line[1] - case.eps_line[0]) / case.Precision(case.Nxy)
+    h, lam = case.initial_h(epsvec, case.Lmin, case.MethodInitial)
+    deps = (case.eps_line[1] - case.eps_line[0]) / case.Precision(case.Nxy - 1)
     resultnorm = []
     count_fail = 0
     while epsilon0 <= case.eps_line[1] and (count_fail <= case.MaxIter):
-        deps = deps0
         epsilon = epsilon0 + deps
         epsvec = epsilon * eps_modes * eps_dir + (1 - eps_modes) * eps_dir
         if case.ChoiceInitial == 'fixed':
-            h, lam = case.initial_h(epsvec, h.shape[0])
+            h, lam = case.initial_h(epsvec, h.shape[0], case.MethodInitial)
         result, h_, lam_ = point(epsvec, case, h, lam, display=False)
         if result[0] == 1:
             count_fail = 0
@@ -62,7 +59,8 @@ def line_norm(case, display=True):
             save_data('line_norm', xp.array(resultnorm), timestr, case)
         elif case.AdaptEps:
             while (result[0] == 0) and deps >= case.MinEps:
-                deps = deps / 2.0
+                deps /= 5.0
+                print(deps)
                 epsilon = epsilon0 + deps
                 epsvec = epsilon * eps_modes * eps_dir + (1 - eps_modes) * eps_dir
                 result, h_, lam_ = point(epsvec, case, h, lam, display=False)
@@ -74,11 +72,11 @@ def line_norm(case, display=True):
                 save_data('line_norm', xp.array(resultnorm), timestr, case)
         if result[0] == 0:
             count_fail += 1
-        if (result[0] == 1) and (case.ChoiceInitial == 'continuation'):
+        elif (case.ChoiceInitial == 'continuation'):
             h, lam = h_.copy(), lam_
         epsilon0 = epsilon
     resultnorm = xp.array(resultnorm)
-    if case.PlotResults:
+    if case.PlotResults and resultnorm.size != 0:
         fig, ax = plt.subplots(1, 1)
         ax.semilogy(resultnorm[:, 0], resultnorm[:, 1], linewidth=2)
         ax.set_xlabel('$\epsilon$')
@@ -86,14 +84,14 @@ def line_norm(case, display=True):
     return resultnorm
 
 def line(epsilon, case, display=False):
-    h, lam = case.initial_h(epsilon[0], case.Lmin)
+    h, lam = case.initial_h(epsilon[0], case.Lmin, case.MethodInitial)
     results = []
     for eps in tqdm(epsilon, disable=not display):
         result, h_, lam_ = point(eps, case, h, lam)
         if (result[0] == 1) and case.ChoiceInitial == 'continuation':
             h, lam = h_.copy(), lam_
         elif case.ChoiceInitial == 'fixed':
-            h, lam = case.initial_h(eps, h_.shape[0])
+            h, lam = case.initial_h(eps, h_.shape[0], case.MethodInitial)
         results.append(result)
     return xp.array(results)[:, 0], xp.array(results)[:, 1]
 
