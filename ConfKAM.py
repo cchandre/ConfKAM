@@ -61,14 +61,14 @@ class ConfKAM:
 				return [h, 0.0]
 
 	def conjug_eq(self, h, eps, n):
-		arg_v = self.phi + xp.tensordot(self.Omega, h.reshape(self.dim * (n,)), axes=0)
+		arg_v = (self.phi + xp.tensordot(self.Omega, h.reshape(self.dim * (n,)), axes=0)) % (2.0 * xp.pi)
 		return (ifftn(self.lk * fftn(h.reshape(self.dim * (n,)))).real + self.dv(arg_v, eps, self.Omega)).flatten()
 
 	def refine_h(self, h, lam, eps):
 		n = h.shape[0]
 		self.set_var(n)
 		fft_h = fftn(h)
-		fft_h[xp.abs(fft_h) <= self.Threshold] = 0.0
+		fft_h[xp.abs(fft_h) <= self.Threshold * self.rescale_fft] = 0.0
 		fft_h[self.zero_] = 0.0
 		h_thresh = ifftn(fft_h).real
 		arg_v = (self.phi + xp.tensordot(self.Omega, h_thresh, axes=0)) % (2.0 * xp.pi)
@@ -92,7 +92,7 @@ class ConfKAM:
 		fft_h_ = fftn(h_)
 		tail_norm = xp.abs(fft_h_[self.tail_indx]).max()
 		fft_h_[self.zero_] = 0.0
-		fft_h_[xp.abs(fft_h_) <= self.Threshold] = 0.0
+		fft_h_[xp.abs(fft_h_) <= self.Threshold * self.rescale_fft] = 0.0
 		if self.AdaptL and (tail_norm >= self.Threshold * xp.abs(fft_h_).max()) and (n < self.Lmax):
 			n *= 2
 			self.set_var(n)

@@ -38,7 +38,7 @@
 ##   Precision: 32, 64 or 128; precision of calculations (default=64)                                                 ##
 ##   SaveData: boolean; if True, the results are saved in a .mat file                                                 ##
 ##   PlotResults: boolean; if True, the results are plotted right after the computation                               ##
-##   Parallelization: 2d array [boolean, int]; True for parallelization, int is the number of cores to be used        ##
+##   Parallelization: tuple (boolean, int); True for parallelization, int is the number of cores to be used           ##
 ##                                                                                                                    ##
 ########################################################################################################################
 import numpy as xp
@@ -67,13 +67,13 @@ eps_dir = [1, 1]
 # eps_modes = [1, 1, 0]
 # eps_dir = [1, 5, 0.1]
 
-AdaptL = False
+AdaptL = True
 Lmin = 2 ** 7
-Lmax = 2 ** 10
+Lmax = 2 ** 11
 
 TolMax = 1e+30
 TolMin = 1e-9
-Threshold = 1e-13
+Threshold = 1e-11
 MaxIter = 100
 
 Type = 'cartesian'
@@ -87,7 +87,7 @@ MonitorGrad = False
 Precision = 64
 SaveData = False
 PlotResults = True
-Parallelization = [True, 4]
+Parallelization = (True, 4)
 
 ########################################################################################################################
 ##                                                DO NOT EDIT BELOW                                                   ##

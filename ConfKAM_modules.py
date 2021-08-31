@@ -60,7 +60,6 @@ def line_norm(case, display=True):
         elif case.AdaptEps:
             while (result[0] == 0) and deps >= case.MinEps:
                 deps /= 5.0
-                print(deps)
                 epsilon = epsilon0 + deps
                 epsvec = epsilon * eps_modes * eps_dir + (1 - eps_modes) * eps_dir
                 result, h_, lam_ = point(epsvec, case, h, lam, display=False)
