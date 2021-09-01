@@ -15,20 +15,21 @@ ___
 ##  Parameter dictionary
 
 - *Method*: 'line_norm', 'region'; choice of method                                            
-- *Nxy*: integer; number of points along each line in computations                                        
+- *Nxy*: integer; number of points along each line in computations 
+- *r*: integer; order of the Sobolev norm used in `compute_line_norm()`                                        
 ####                                                                                                   
 - *omega0*: array of *n* floats; frequency vector of the invariant torus                                
 - *Omega*: array of *n* floats; vector defining the perturbation in actions                             
-- *dv*: function; derivative of the *n*-d potential along a line                                               
-- *eps_region*: array of floats; min and max values of the amplitudes for each mode of the potential (see *dv*) 
-- *eps_indx*: array of 2 integers; indices of the modes to be varied in `region()`                    
-         in 'polar', radii are on *eps_indx[0]* and angles on *eps_indx[1]*                         
-         parallelization in `region()` is done along the *eps_indx[0]* axis                               
-- *eps_line*: 1d array of floats; min and max values of the amplitudes of the potential used in `line_norm()`   
-- *eps_modes*: array of 0 and 1; specify which modes are being varied in `line_norm()` (1 for a varied mode)     
-- *eps_dir*: 1d array of floats; direction of the one-parameter family used in `line_norm()`                 
+- *Dv*: function; derivative of the *n*-d potential along a line                                               
+- *CoordRegion*: array of floats; min and max values of the amplitudes for each mode of the potential (see *Dv*) 
+- *IndxLine*: array of integers; indices of the modes to be varied in `compute_region()`                                        
+         parallelization in `compute_region()` is done along the *IndxLine[0]* axis   
+- PolarAngles: array of two floats; min and max value of the angles in 'polar'
+- *CoordLine*: 1d array of floats; min and max values of the amplitudes of the potential used in `compute_line_norm()`   
+- *ModesLine*: tuple of 0 and 1; specify which modes are being varied (1 for a varied mode)     
+- *DirLine*: 1d array of floats; direction of the one-parameter family used in `compute_line_norm()`                 
 ####                                                                                           
-- *r*: integer; order of the Sobolev norm used in `line_norm()`                                          
+                                         
 ####                                                                                                           
 - *AdaptL*: boolean; if True, changes the dimension of arrays depending on the tail of the FFT of *h*(*psi*)      
 - *Lmin*: integer; minimum and default value of the dimension of arrays for *h*(*psi*)                           
@@ -40,16 +41,17 @@ ___
 - *MaxIter*: integer; maximum number of iterations for the Newton method                                      
 ####                                                                                                         
 - *Type*: 'cartesian', 'polar'; type of computation for 2d plots                                             
-- *ChoiceInitial*: 'fixed', 'continuation'; method for the initial conditions of the Newton method             
+- *ChoiceInitial*: 'fixed', 'continuation'; method for the initial conditions of the Newton method   
+- *MethodInitial*: 'zero', 'one_step'; method to generate the initial conditions for the Newton iteration          
 ####                                                                                                       
-- *AdaptEps*: boolean; if True adapt the increment of eps in `line_norm()`                                   
+- *AdaptEps*: boolean; if True adapt the increment of eps in `compute_line_norm()`                                   
 - *MinEps*: float; minimum value of the increment of eps if *AdaptEps*=True                               
 - *MonitorGrad*: boolean; if True, monitors the gradient of *h*(*psi*)                                      
 ####                                                                                 
 - *Precision*: 32, 64 or 128; precision of calculations (default=64)                  
 - *SaveData*: boolean; if True, the results are saved in a `.mat` file               
 - *PlotResults*: boolean; if True, the results are plotted right after the computation              
-- *Parallelization*: 2d array [boolean, int]; True for parallelization, int is the number of cores to be used (set int='all' for all of the cores)
+- *Parallelization*: tuple (boolean, int); True for parallelization, int is the number of cores to be used (set int='all' for all of the cores)
 ####
 ---
 For more information: <cristel.chandre@univ-amu.fr>
