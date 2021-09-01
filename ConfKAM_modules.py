@@ -34,20 +34,17 @@ def point(eps, case, h, lam, gethull=False, display=False):
         save_data('hull', h_, timestr, case)
     return [int(err <= case.TolMin), it_count], h_, lam_
 
-def line_norm(case, display=True):
+def compute_line_norm(case, display=True):
     print('\033[92m    {} -- line_norm \033[00m'.format(case.__str__()))
     timestr = time.strftime("%Y%m%d_%H%M")
-    eps_modes = xp.array(case.eps_modes)
-    eps_dir = xp.array(case.eps_dir)
-    epsilon0 = case.eps_line[0]
-    epsvec = epsilon0 * eps_modes * eps_dir + (1 - eps_modes) * eps_dir
+    epsilon0 = case.CoordLine[0]
+    epsvec = epsilon0 * case.ModesLine * case.DirLine + (1 - case.ModesLine) * case.DirLine
     h, lam = case.initial_h(epsvec, case.Lmin, case.MethodInitial)
-    deps = (case.eps_line[1] - case.eps_line[0]) / case.Precision(case.Nxy - 1)
-    resultnorm = []
-    count_fail = 0
-    while epsilon0 <= case.eps_line[1] and (count_fail <= case.MaxIter):
+    deps = (case.CoordLine[1] - case.CoordLine[0]) / case.Precision(case.Nxy - 1)
+    resultnorm, count_fail = [], 0
+    while epsilon0 <= case.CoordLine[1] and (count_fail <= case.MaxIter):
         epsilon = epsilon0 + deps
-        epsvec = epsilon * eps_modes * eps_dir + (1 - eps_modes) * eps_dir
+        epsvec = epsilon * case.ModesLine * case.DirLine + (1 - case.ModesLine) * case.DirLine
         if case.ChoiceInitial == 'fixed':
             h, lam = case.initial_h(epsvec, h.shape[0], case.MethodInitial)
         result, h_, lam_ = point(epsvec, case, h, lam, display=False)
@@ -61,7 +58,7 @@ def line_norm(case, display=True):
             while (result[0] == 0) and deps >= case.MinEps:
                 deps /= 5.0
                 epsilon = epsilon0 + deps
-                epsvec = epsilon * eps_modes * eps_dir + (1 - eps_modes) * eps_dir
+                epsvec = epsilon * case.ModesLine * case.DirLine + (1 - case.ModesLine) * case.DirLine
                 result, h_, lam_ = point(epsvec, case, h, lam, display=False)
             if result[0] == 1:
                 count_fail = 0
@@ -82,10 +79,10 @@ def line_norm(case, display=True):
         ax.set_ylabel('$\Vert h \Vert_{}$'.format(case.r))
     return resultnorm
 
-def line(epsilon, case, display=False):
-    h, lam = case.initial_h(epsilon[0], case.Lmin, case.MethodInitial)
+def line(eps_list, case, display=False):
+    h, lam = case.initial_h(eps_list[0], case.Lmin, case.MethodInitial)
     results = []
-    for eps in tqdm(epsilon, disable=not display):
+    for eps in tqdm(eps_list, disable=not display):
         result, h_, lam_ = point(eps, case, h, lam)
         if (result[0] == 1) and case.ChoiceInitial == 'continuation':
             h, lam = h_.copy(), lam_
@@ -94,41 +91,39 @@ def line(epsilon, case, display=False):
         results.append(result)
     return xp.array(results)[:, 0], xp.array(results)[:, 1]
 
-def region(case):
+def compute_region(case):
     print('\033[92m    {} -- region \033[00m'.format(case.__str__()))
     timestr = time.strftime("%Y%m%d_%H%M")
-    eps_region = xp.array(case.eps_region, dtype=case.Precision)
-    eps_vecs = xp.linspace(eps_region[:, 0], eps_region[:, 1], case.Nxy, dtype=case.Precision)
+    eps_vecs = xp.linspace(case.CoordRegion[:, 0], case.CoordRegion[:, 1], case.Nxy, dtype=case.Precision)
     if case.Type == 'cartesian':
         eps_list = []
-        for it in range(case.Nxy):
-            eps_copy = eps_vecs.copy()
-            eps_copy[:, case.eps_indx[1]] = eps_vecs[it, case.eps_indx[1]]
-            eps_list.append(eps_copy)
+        for _ in range(case.Nxy):
+            eps_ = eps_vecs.copy()
+            eps_[:, case.IndxLine[1]] = eps_vecs[_, case.IndxLine[1]]
+            eps_list.append(eps_)
     elif case.Type == 'polar':
-        thetas = eps_vecs[:, case.eps_indx[1]]
-        radii = eps_vecs[:, case.eps_indx[0]]
+        thetas = xp.linspace(case.PolarAngles[0], case.PolarAngles[1], case.Nxy, dtype=case.Precision)
+        radii = xp.linspace(0.0, 1.0, case.Nxy, dtype=case.Precision)
         eps_list = []
-        for it in range(case.Nxy):
-            eps_copy = eps_vecs.copy()
-            eps_copy[:, case.eps_indx[0]] = radii * xp.cos(thetas[it])
-            eps_copy[:, case.eps_indx[1]] = radii * xp.sin(thetas[it])
-            eps_list.append(eps_copy)
-    convs = []
-    iters = []
+        for _ in range(case.Nxy):
+            eps_ = eps_vecs.copy()
+            eps_[:, case.IndxLine[0]] = case.CoordRegion[case.IndxLine[0], 0] + radii * xp.cos(thetas[_]) * (case.CoordRegion[case.IndxLine[0], 1] - case.CoordRegion[case.IndxLine[0], 0])
+            eps_[:, case.IndxLine[1]] = case.CoordRegion[case.IndxLine[1], 0] + radii * xp.sin(thetas[_]) * (case.CoordRegion[case.IndxLine[1], 1] - case.CoordRegion[case.IndxLine[1], 0])
+            eps_list.append(eps_)
+    convs, iters = [], []
     if case.Parallelization[0]:
         if case.Parallelization[1] == 'all':
             num_cores = multiprocess.cpu_count()
         else:
             num_cores = min(multiprocess.cpu_count(), case.Parallelization[1])
         pool = multiprocess.Pool(num_cores)
-        line_ = lambda it: line(eps_list[it], case)
+        line_ = lambda _: line(eps_list[_], case)
         for conv, iter in tqdm(pool.imap(line_, iterable=range(case.Nxy)), total=case.Nxy):
             convs.append(conv)
             iters.append(iter)
     else:
-        for it in trange(case.Nxy):
-            conv, iter = line(eps_list[it], case)
+        for _ in trange(case.Nxy):
+            conv, iter = line(eps_list[_], case)
             convs.append(conv)
             iters.append(iter)
     save_data('region', xp.array(convs), timestr, case, info=xp.array(iters))
@@ -144,7 +139,8 @@ def region(case):
         elif (case.Type == 'polar'):
             r, theta = xp.meshgrid(radii, thetas)
             fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
-            ax.contourf(theta, r, xp.array(iters))
+            im = ax.contourf(theta, r, xp.array(iters), norm=divnorm)
+            fig.colorbar(im)
     return xp.array(convs)
 
 def save_data(name, data, timestr, case, info=[]):

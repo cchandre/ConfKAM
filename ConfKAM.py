@@ -3,7 +3,7 @@ from numpy import linalg as LA
 from numpy.fft import fftn, ifftn, fftfreq, fftshift, ifftshift
 from scipy.optimize import root
 import matplotlib.pyplot as plt
-from ConfKAM_modules import line_norm, region
+from ConfKAM_modules import compute_line_norm, compute_region
 from ConfKAM_dict import dict
 import gc
 import warnings
@@ -51,9 +51,9 @@ class ConfKAM:
 		if method == 'zero':
 			return [xp.zeros_like(self.lk), 0.0]
 		elif method == 'one_step':
-			return [- ifftn(fftn(self.dv(self.phi, eps, self.Omega)) * self.ilk).real, 0.0]
+			return [- ifftn(fftn(self.Dv(self.phi, eps, self.Omega)) * self.ilk).real, 0.0]
 		else:
-			h = - ifftn(fftn(self.dv(self.phi, eps, self.Omega)) * self.ilk).real
+			h = - ifftn(fftn(self.Dv(self.phi, eps, self.Omega)) * self.ilk).real
 			sol = root(self.conjug_eq, h.flatten(), args=(eps, n), method=method, options={'fatol': 1e-9})
 			if sol.success:
 				return [sol.x.reshape((n, n)), 0.0]
@@ -62,7 +62,7 @@ class ConfKAM:
 
 	def conjug_eq(self, h, eps, n):
 		arg_v = (self.phi + xp.tensordot(self.Omega, h.reshape(self.dim * (n,)), axes=0)) % (2.0 * xp.pi)
-		return (ifftn(self.lk * fftn(h.reshape(self.dim * (n,)))).real + self.dv(arg_v, eps, self.Omega)).flatten()
+		return (ifftn(self.lk * fftn(h.reshape(self.dim * (n,)))).real + self.Dv(arg_v, eps, self.Omega)).flatten()
 
 	def refine_h(self, h, lam, eps):
 		n = h.shape[0]
@@ -75,7 +75,7 @@ class ConfKAM:
 		fft_l = 1j * self.Omega_nu * fft_h
 		fft_l[self.zero_] = self.rescale_fft
 		l = ifftn(fft_l).real
-		epsilon = ifftn(self.lk * fft_h).real + self.dv(arg_v, eps, self.Omega) + lam
+		epsilon = ifftn(self.lk * fft_h).real + self.Dv(arg_v, eps, self.Omega) + lam
 		fft_leps = fftn(l * epsilon)
 		delta = - fft_leps[self.zero_].real / fft_l[self.zero_].real
 		w = ifftn((delta * fft_l + fft_leps) * self.sml_div).real
@@ -100,7 +100,7 @@ class ConfKAM:
 			fft_h_ = ifftshift(xp.pad(fftshift(fft_h_), self.pad)) * (2 ** self.dim)
 		h_ = ifftn(fft_h_).real
 		arg_v = (self.phi + xp.tensordot(self.Omega, h_, axes=0)) % (2.0 * xp.pi)
-		err = xp.abs(ifftn(self.lk * fft_h_).real + self.dv(arg_v, eps, self.Omega) + lam_).max()
+		err = xp.abs(ifftn(self.lk * fft_h_).real + self.Dv(arg_v, eps, self.Omega) + lam_).max()
 		if self.MonitorGrad:
 			dh_ = self.id + xp.tensordot(self.Omega, xp.gradient(h_, 2.0 * xp.pi / n), axes=0)
 			det_h_ = xp.abs(LA.det(xp.moveaxis(dh_, [0, 1], [-2, -1]))).min()
