@@ -146,8 +146,9 @@ def compute_region(case):
 def save_data(name, data, timestr, case, info=[]):
     if case.SaveData:
         mdic = case.DictParams.copy()
+        del mdic['Precision']
         mdic.update({'data': data, 'info': info})
-        date_today = date.today().strftime(" %B %d, %Y\n")
+        date_today = date.today().strftime(" %B %d, %Y")
         mdic.update({'date': date_today, 'author': 'cristel.chandre@univ-amu.fr'})
         name_file = type(case).__name__ + '_' + name + '_' + timestr + '.mat'
         savemat(name_file, mdic)

@@ -6,7 +6,7 @@ import numpy as xp
 
 Method = 'region'
 #Method = 'line_norm'
-Nxy = 512
+Nxy = 4
 r = 4
 
 omega0 = [(xp.sqrt(5) - 1) / 2, -1]
@@ -31,7 +31,7 @@ DirLine = [1, 1]
 # DirLine = [1, 5, 0.1]
 
 AdaptL = False
-Lmin = 2 ** 9
+Lmin = 2 ** 7
 Lmax = 2 ** 11
 
 TolMax = 1e+10

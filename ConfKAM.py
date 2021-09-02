@@ -93,7 +93,7 @@ class ConfKAM:
 		tail_norm = xp.abs(fft_h_[self.tail_indx]).max()
 		fft_h_[self.zero_] = 0.0
 		fft_h_[xp.abs(fft_h_) <= self.Threshold * self.rescale_fft] = 0.0
-		if self.AdaptL and (tail_norm >= self.Threshold * xp.abs(fft_h_).max()) and (n < self.Lmax):
+		if self.AdaptL and (tail_norm >= self.TolMin * xp.abs(fft_h_).max()) and (n < self.Lmax):
 			n *= 2
 			self.set_var(n)
 			h = ifftn(ifftshift(xp.pad(fftshift(fft_h), self.pad))).real * (2 ** self.dim)
