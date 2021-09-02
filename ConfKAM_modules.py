@@ -19,7 +19,7 @@ plt.rcParams.update({
     'figure.figsize': [8, 8],
     'image.cmap': 'bwr'})
 
-def point(eps, case, h, lam, gethull=False, display=False):
+def point(eps, h, lam, case, gethull=False, display=False):
     h_, lam_, err = h.copy(), lam, 1.0
     it_count = 0
     while (case.TolMax >= err >= case.TolMin) and (it_count <= case.MaxIter):
@@ -34,6 +34,18 @@ def point(eps, case, h, lam, gethull=False, display=False):
         save_data('hull', h_, timestr, case)
     return [int(err <= case.TolMin), it_count], h_, lam_
 
+def line(eps_list, case, display=False):
+    h, lam = case.initial_h(eps_list[0], case.Lmin, case.MethodInitial)
+    results = []
+    for eps in tqdm(eps_list, disable=not display):
+        result, h_, lam_ = point(eps, h, lam, case)
+        if case.ChoiceInitial == 'continuation' and (result[0] == 1):
+            h, lam = h_.copy(), lam_
+        elif case.ChoiceInitial == 'fixed':
+            h, lam = case.initial_h(eps, h_.shape[0], case.MethodInitial)
+        results.append(result)
+    return xp.array(results)[:, 0], xp.array(results)[:, 1]
+
 def compute_line_norm(case, display=True):
     print('\033[92m    {} -- line_norm \033[00m'.format(case.__str__()))
     timestr = time.strftime("%Y%m%d_%H%M")
@@ -47,7 +59,7 @@ def compute_line_norm(case, display=True):
         epsvec = epsilon * case.ModesLine * case.DirLine + (1 - case.ModesLine) * case.DirLine
         if case.ChoiceInitial == 'fixed':
             h, lam = case.initial_h(epsvec, h.shape[0], case.MethodInitial)
-        result, h_, lam_ = point(epsvec, case, h, lam, display=False)
+        result, h_, lam_ = point(epsvec, h, lam, case, display=False)
         if result[0] == 1:
             count_fail = 0
             resultnorm.append(xp.concatenate((epsilon, case.norms(h_, case.r)), axis=None))
@@ -59,7 +71,7 @@ def compute_line_norm(case, display=True):
                 deps /= 5.0
                 epsilon = epsilon0 + deps
                 epsvec = epsilon * case.ModesLine * case.DirLine + (1 - case.ModesLine) * case.DirLine
-                result, h_, lam_ = point(epsvec, case, h, lam, display=False)
+                result, h_, lam_ = point(epsvec, h, lam, case, display=False)
             if result[0] == 1:
                 count_fail = 0
                 resultnorm.append(xp.concatenate((epsilon, case.norms(h_, case.r)), axis=None))
@@ -78,18 +90,6 @@ def compute_line_norm(case, display=True):
         ax.set_xlabel('$\epsilon$')
         ax.set_ylabel('$\Vert h \Vert_{}$'.format(case.r))
     return resultnorm
-
-def line(eps_list, case, display=False):
-    h, lam = case.initial_h(eps_list[0], case.Lmin, case.MethodInitial)
-    results = []
-    for eps in tqdm(eps_list, disable=not display):
-        result, h_, lam_ = point(eps, case, h, lam)
-        if (result[0] == 1) and case.ChoiceInitial == 'continuation':
-            h, lam = h_.copy(), lam_
-        elif case.ChoiceInitial == 'fixed':
-            h, lam = case.initial_h(eps, h_.shape[0], case.MethodInitial)
-        results.append(result)
-    return xp.array(results)[:, 0], xp.array(results)[:, 1]
 
 def compute_region(case):
     print('\033[92m    {} -- region \033[00m'.format(case.__str__()))
