@@ -21,10 +21,10 @@ ___
 - *omega0*: array of *n* floats; frequency vector of the invariant torus                                
 - *Omega*: array of *n* floats; vector defining the perturbation in actions                             
 - *Dv*: function; derivative of the *n*-d potential along a line                                               
-- *CoordRegion*: array of floats; min and max values of the amplitudes for each mode of the potential (see *Dv*) 
-- *IndxLine*: array of integers; indices of the modes to be varied in `compute_region()`                                        
-         parallelization in `compute_region()` is done along the *IndxLine[0]* axis   
-- PolarAngles: array of two floats; min and max value of the angles in 'polar'
+- *CoordRegion*: array of floats; min and max values of the amplitudes for each mode of the potential (see *Dv*); used in `compute_region()`
+- *IndxLine*: tuple of integers; indices of the modes to be varied in `compute_region()`                                        
+         parallelization in `compute_region()` is done along the *IndxLine*[0] axis   
+- *PolarAngles*: array of two floats; min and max value of the angles in 'polar'
 - *CoordLine*: 1d array of floats; min and max values of the amplitudes of the potential used in `compute_line_norm()`   
 - *ModesLine*: tuple of 0 and 1; specify which modes are being varied (1 for a varied mode)     
 - *DirLine*: 1d array of floats; direction of the one-parameter family used in `compute_line_norm()`                 
