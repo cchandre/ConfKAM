@@ -29,9 +29,9 @@ class ConfKAM:
 		self.zero_ = self.dim * (0,)
 		self.id = xp.reshape(xp.identity(self.dim), 2 * (self.dim,) + self.dim * (1,))
 
-	def set_var(self, n):
-		ind_nu = self.dim * (fftfreq(n, d=1.0/self.Precision(n)),)
-		ind_phi = self.dim * (xp.linspace(0.0, 2.0 * xp.pi, n, endpoint=False, dtype=self.Precision),)
+	def set_var(self, L):
+		ind_nu = self.dim * (fftfreq(L, d=1.0/self.Precision(L)),)
+		ind_phi = self.dim * (xp.linspace(0.0, 2.0 * xp.pi, L, endpoint=False, dtype=self.Precision),)
 		nu = xp.meshgrid(*ind_nu, indexing='ij')
 		self.phi = xp.meshgrid(*ind_phi, indexing='ij')
 		self.norm_nu = LA.norm(nu, axis=0)
@@ -43,30 +43,30 @@ class ConfKAM:
 		self.ilk = xp.divide(1.0, self.lk, where=self.lk!=0.0)
 		self.ilk[self.zero_] = 0.0
 		self.rescale_fft = self.Precision(n ** self.dim)
-		self.tail_indx = self.dim * xp.index_exp[n//4:3*n//4+1]
-		self.pad = self.dim * ((n//4, n//4),)
+		self.tail_indx = self.dim * xp.index_exp[L//4:3*L//4+1]
+		self.pad = self.dim * ((L//4, L//4),)
 
-	def initial_h(self, eps, n, method='one_step'):
-		self.set_var(n)
+	def initial_h(self, eps, L, method='one_step'):
+		self.set_var(L)
 		if method == 'zero':
 			return [xp.zeros_like(self.lk), 0.0]
 		elif method == 'one_step':
 			return [- ifftn(fftn(self.Dv(self.phi, eps, self.Omega)) * self.ilk).real, 0.0]
 		else:
 			h = - ifftn(fftn(self.Dv(self.phi, eps, self.Omega)) * self.ilk).real
-			sol = root(self.conjug_eq, h.flatten(), args=(eps, n), method=method, options={'fatol': 1e-9})
+			sol = root(self.conjug_eq, h.flatten(), args=(eps, L), method=method, options={'fatol': 1e-9})
 			if sol.success:
-				return [sol.x.reshape((n, n)), 0.0]
+				return [sol.x.reshape((L, L)), 0.0]
 			else:
 				return [h, 0.0]
 
-	def conjug_eq(self, h, eps, n):
-		arg_v = (self.phi + xp.tensordot(self.Omega, h.reshape(self.dim * (n,)), axes=0)) % (2.0 * xp.pi)
-		return (ifftn(self.lk * fftn(h.reshape(self.dim * (n,)))).real + self.Dv(arg_v, eps, self.Omega)).flatten()
+	def conjug_eq(self, h, eps, L):
+		arg_v = (self.phi + xp.tensordot(self.Omega, h.reshape(self.dim * (L,)), axes=0)) % (2.0 * xp.pi)
+		return (ifftn(self.lk * fftn(h.reshape(self.dim * (L,)))).real + self.Dv(arg_v, eps, self.Omega)).flatten()
 
 	def refine_h(self, h, lam, eps):
-		n = h.shape[0]
-		self.set_var(n)
+		L = h.shape[0]
+		self.set_var(L)
 		fft_h = fftn(h)
 		fft_h[xp.abs(fft_h) <= self.Threshold * self.rescale_fft] = 0.0
 		fft_h[self.zero_] = 0.0
@@ -93,16 +93,16 @@ class ConfKAM:
 		tail_norm = xp.abs(fft_h_[self.tail_indx]).max()
 		fft_h_[self.zero_] = 0.0
 		fft_h_[xp.abs(fft_h_) <= self.Threshold * self.rescale_fft] = 0.0
-		if self.AdaptL and (tail_norm >= self.TolMin * xp.abs(fft_h_).max()) and (n < self.Lmax):
-			n *= 2
-			self.set_var(n)
+		if self.AdaptL and (tail_norm >= self.TolMin * xp.abs(fft_h_).max()) and (xp.abs(fft_h_).max() <= self.TolMax) and (L < self.Lmax):
+			L *= 2
+			self.set_var(L)
 			h = ifftn(ifftshift(xp.pad(fftshift(fft_h), self.pad))).real * (2 ** self.dim)
 			fft_h_ = ifftshift(xp.pad(fftshift(fft_h_), self.pad)) * (2 ** self.dim)
 		h_ = ifftn(fft_h_).real
 		arg_v = (self.phi + xp.tensordot(self.Omega, h_, axes=0)) % (2.0 * xp.pi)
 		err = xp.abs(ifftn(self.lk * fft_h_).real + self.Dv(arg_v, eps, self.Omega) + lam_).max()
 		if self.MonitorGrad:
-			dh_ = self.id + xp.tensordot(self.Omega, xp.gradient(h_, 2.0 * xp.pi / n), axes=0)
+			dh_ = self.id + xp.tensordot(self.Omega, xp.gradient(h_, 2.0 * xp.pi / L), axes=0)
 			det_h_ = xp.abs(LA.det(xp.moveaxis(dh_, [0, 1], [-2, -1]))).min()
 			if det_h_ <= self.TolMin:
 				print('\033[31m        warning: non-invertibility...\033[00m')

@@ -4,9 +4,9 @@
 
 import numpy as xp
 
-#Method = 'region'
-Method = 'line_norm'
-Nxy = 512
+Method = 'region'
+#Method = 'line_norm'
+Nxy = 64
 r = 4
 
 omega0 = [(xp.sqrt(5) - 1) / 2, -1]
@@ -30,9 +30,9 @@ DirLine = [1, 1]
 # ModesLine = (1, 1, 0)
 # DirLine = [1, 5, 0.1]
 
-AdaptL = True
-Lmin = 2 ** 5
-Lmax = 2 ** 12
+AdaptL = False
+Lmin = 2 ** 9
+Lmax = 2 ** 9
 
 TolMax = 1e+10
 TolMin = 1e-10
@@ -40,10 +40,10 @@ Threshold = 1e-13
 MaxIter = 100
 
 Type = 'cartesian'
-ChoiceInitial = 'continuation'
+ChoiceInitial = 'fixed'
 MethodInitial = 'one_step'
 
-AdaptEps = True
+AdaptEps = False
 MinEps = 1e-6
 MonitorGrad = False
 
