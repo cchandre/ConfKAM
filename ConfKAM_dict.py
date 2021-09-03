@@ -4,10 +4,10 @@
 
 import numpy as xp
 
-Method = 'region'
-#Method = 'line_norm'
-Nxy = 64
-r = 4
+#Method = 'region'
+Method = 'line_norm'
+Nxy = 100
+r = 6
 
 omega0 = [(xp.sqrt(5) - 1) / 2, -1]
 Omega = [1, 0]
@@ -26,30 +26,30 @@ DirLine = [1, 1]
 # CoordRegion = [[0.0, 0.15], [0.0,  0.40], [0.1, 0.1]]
 # IndxLine = (0, 1)
 # PolarAngles = [0.0, xp.pi / 2.0]
-# CoordLine = [0.0, 0.05]
+# CoordLine = [0.02, 0.05]
 # ModesLine = (1, 1, 0)
 # DirLine = [1, 5, 0.1]
 
-AdaptL = False
-Lmin = 2 ** 9
-Lmax = 2 ** 9
+AdaptSize = True
+Lmin = 2 ** 6
+Lmax = 2 ** 12
 
 TolMax = 1e+10
 TolMin = 1e-10
-Threshold = 1e-13
+Threshold = 1e-12
 MaxIter = 100
 
 Type = 'cartesian'
-ChoiceInitial = 'fixed'
+ChoiceInitial = 'continuation'
 MethodInitial = 'one_step'
 
-AdaptEps = False
-MinEps = 1e-6
+AdaptEps = True
+MinEps = 1e-7
 MonitorGrad = False
 
 Precision = 64
 SaveData = False
-PlotResults = True
+PlotResults = False
 Parallelization = (True, 4)
 
 ########################################################################################################################
@@ -69,7 +69,7 @@ dict.update({
 		'CoordLine': CoordLine,
 		'ModesLine': xp.asarray(ModesLine),
 		'DirLine': xp.asarray(DirLine),
-		'AdaptL': AdaptL,
+		'AdaptSize': AdaptSize,
 		'Lmin': Lmin,
 		'Lmax': Lmax,
 		'TolMax': TolMax,

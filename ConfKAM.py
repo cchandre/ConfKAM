@@ -42,7 +42,7 @@ class ConfKAM:
 		self.lk = - self.omega0_nu ** 2
 		self.ilk = xp.divide(1.0, self.lk, where=self.lk!=0.0)
 		self.ilk[self.zero_] = 0.0
-		self.rescale_fft = self.Precision(n ** self.dim)
+		self.rescale_fft = self.Precision(L ** self.dim)
 		self.tail_indx = self.dim * xp.index_exp[L//4:3*L//4+1]
 		self.pad = self.dim * ((L//4, L//4),)
 
@@ -65,11 +65,10 @@ class ConfKAM:
 		return (ifftn(self.lk * fftn(h.reshape(self.dim * (L,)))).real + self.Dv(arg_v, eps, self.Omega)).flatten()
 
 	def refine_h(self, h, lam, eps):
-		L = h.shape[0]
-		self.set_var(L)
+		self.set_var(h.shape[0])
 		fft_h = fftn(h)
-		fft_h[xp.abs(fft_h) <= self.Threshold * self.rescale_fft] = 0.0
 		fft_h[self.zero_] = 0.0
+		fft_h[xp.abs(fft_h) <= self.Threshold * xp.abs(fft_h).max()] = 0.0
 		h_thresh = ifftn(fft_h).real
 		arg_v = (self.phi + xp.tensordot(self.Omega, h_thresh, axes=0)) % (2.0 * xp.pi)
 		fft_l = 1j * self.Omega_nu * fft_h
@@ -90,19 +89,18 @@ class ConfKAM:
 		gc.collect()
 		lam_ = lam + delta
 		fft_h_ = fftn(h_)
-		tail_norm = xp.abs(fft_h_[self.tail_indx]).max()
 		fft_h_[self.zero_] = 0.0
-		fft_h_[xp.abs(fft_h_) <= self.Threshold * self.rescale_fft] = 0.0
-		if self.AdaptL and (tail_norm >= self.TolMin * xp.abs(fft_h_).max()) and (xp.abs(fft_h_).max() <= self.TolMax) and (L < self.Lmax):
-			L *= 2
-			self.set_var(L)
+		fft_h_[xp.abs(fft_h_) <= self.Threshold * xp.abs(fft_h_).max()] = 0.0
+		tail_norm = xp.abs(fft_h_[self.tail_indx]).max()
+		if self.AdaptSize and (tail_norm >= self.TolMin * xp.abs(fft_h_).max()) and (h.shape[0] < self.Lmax):
+			self.set_var(2 * h.shape[0])
 			h = ifftn(ifftshift(xp.pad(fftshift(fft_h), self.pad))).real * (2 ** self.dim)
 			fft_h_ = ifftshift(xp.pad(fftshift(fft_h_), self.pad)) * (2 ** self.dim)
 		h_ = ifftn(fft_h_).real
 		arg_v = (self.phi + xp.tensordot(self.Omega, h_, axes=0)) % (2.0 * xp.pi)
 		err = xp.abs(ifftn(self.lk * fft_h_).real + self.Dv(arg_v, eps, self.Omega) + lam_).max()
 		if self.MonitorGrad:
-			dh_ = self.id + xp.tensordot(self.Omega, xp.gradient(h_, 2.0 * xp.pi / L), axes=0)
+			dh_ = self.id + xp.tensordot(self.Omega, xp.gradient(h_, 2.0 * xp.pi / self.Precision(h.shape[0])), axes=0)
 			det_h_ = xp.abs(LA.det(xp.moveaxis(dh_, [0, 1], [-2, -1]))).min()
 			if det_h_ <= self.TolMin:
 				print('\033[31m        warning: non-invertibility...\033[00m')

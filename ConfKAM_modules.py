@@ -26,7 +26,7 @@ def point(eps, h, lam, case, gethull=False, display=False):
         h_, lam_, err = case.refine_h(h_, lam_, eps)
         it_count += 1
         if display:
-            print('\033[90m        iteration={}   err={} \033[00m'.format(it_count, err))
+            print('\033[90m        iteration={:d}   err={:.3e} \033[00m'.format(it_count, err))
     if err <= case.TolMin:
         it_count = - it_count
     if gethull:
