@@ -31,7 +31,7 @@ ModesLine = (1, 1, 0)
 DirLine = [1, 5, 0.1]
 
 AdaptSize = True
-Lmin = 2 ** 4
+Lmin = 2 ** 5
 Lmax = 2 ** 8
 
 TolMax = 1e+5
