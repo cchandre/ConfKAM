@@ -35,8 +35,8 @@ Lmin = 2 ** 5
 Lmax = 2 ** 8
 
 TolMax = 1e+5
-TolMin = 1e-9
-Threshold = 1e-11
+TolMin = 1e-6
+Threshold = 1e-8
 MaxIter = 100
 
 Type = 'cartesian'
