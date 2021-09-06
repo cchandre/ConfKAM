@@ -78,33 +78,34 @@ class ConfKAM:
 		fft_leps = fftn(l * epsilon)
 		delta = - fft_leps[self.zero_].real / fft_l[self.zero_].real
 		w = ifftn((delta * fft_l + fft_leps) * self.sml_div).real
-		del fft_l, fft_leps, epsilon
+		del fft_l, fft_leps, epsilon, arg_v
 		gc.collect()
 		fft_wll = fftn(w / (l ** 2))
 		fft_ill = fftn(1.0 / (l ** 2))
 		w0 = - fft_wll[self.zero_].real / fft_ill[self.zero_].real
 		beta = ifftn((fft_wll + w0 * fft_ill) * self.sml_div.conj()).real
-		h_ = h_thresh + beta * l - xp.mean(beta * l) * l / xp.mean(l)
-		del beta
+		fft_h_ = fftn(h_thresh + beta * l - xp.mean(beta * l) * l / xp.mean(l))
+		del beta, h_thresh, l, fft_wll, fft_ill, w
 		gc.collect()
 		lam_ = lam + delta
-		fft_h_ = fftn(h_)
 		fft_h_[self.zero_] = 0.0
 		fft_h_[xp.abs(fft_h_) <= self.Threshold * xp.abs(fft_h_).max()] = 0.0
-		tail_norm = xp.abs(fft_h_[self.tail_indx]).max()
-		if self.AdaptSize and (tail_norm >= self.TolMin * xp.abs(fft_h_).max()) and (h.shape[0] < self.Lmax):
+		tail_norm = xp.abs(fft_h_[self.tail_indx]).max() / xp.abs(fft_h_).max()
+		if self.AdaptSize and (tail_norm >= self.TolMin) and (h.shape[0] < self.Lmax):
 			self.set_var(2 * h.shape[0])
-			h = ifftn(ifftshift(xp.pad(fftshift(fft_h), self.pad))).real * (2 ** self.dim)
 			fft_h_ = ifftshift(xp.pad(fftshift(fft_h_), self.pad)) * (2 ** self.dim)
 		h_ = ifftn(fft_h_).real
 		arg_v = (self.phi + xp.tensordot(self.Omega, h_, axes=0)) % (2.0 * xp.pi)
 		err = xp.abs(ifftn(self.lk * fft_h_).real + self.Dv(arg_v, eps, self.Omega) + lam_).max()
 		if self.MonitorGrad:
-			dh_ = self.id + xp.tensordot(self.Omega, xp.gradient(h_, 2.0 * xp.pi / self.Precision(h.shape[0])), axes=0)
+			dh_ = self.id + xp.tensordot(self.Omega, xp.gradient(h_, 2.0 * xp.pi / self.Precision(h_.shape[0])), axes=0)
 			det_h_ = xp.abs(LA.det(xp.moveaxis(dh_, [0, 1], [-2, -1]))).min()
 			if det_h_ <= self.TolMin:
 				print('\033[31m        warning: non-invertibility...\033[00m')
 		return h_, lam_, err
+
+	def pad_h(self, h):
+		return ifftn(ifftshift(xp.pad(fftshift(fftn(h)), self.pad))).real * (2 ** self.dim)
 
 	def norms(self, h, r=0):
 		self.set_var(h.shape[0])

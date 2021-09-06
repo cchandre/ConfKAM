@@ -24,6 +24,8 @@ def point(eps, h, lam, case, gethull=False, display=False):
     it_count = 0
     while (case.TolMax >= err >= case.TolMin) and (it_count <= case.MaxIter):
         h_, lam_, err = case.refine_h(h_, lam_, eps)
+        if h_.shape[0] != h.shape[0]:
+            h = case.pad_h(h)
         it_count += 1
         if display:
             print('\033[90m        iteration={:d}   err={:.3e} \033[00m'.format(it_count, err))
@@ -64,7 +66,7 @@ def compute_line_norm(case, display=True):
             count_fail = 0
             resultnorm.append(xp.concatenate((epsilon, case.norms(h_, case.r)), axis=None))
             if display:
-                print('\033[90m        epsilon={:.6f}    norm_{:d}={:.3e} \033[00m'.format(epsilon, case.r, case.norms(h_, case.r)[0]))
+                print('\033[90m        epsilon={:.6f}    norm_{:d}={:.3e}    (for L={:d})\033[00m'.format(epsilon, case.r, case.norms(h_, case.r)[0], h_.shape[0]))
             save_data('line_norm', xp.array(resultnorm), timestr, case)
         elif case.AdaptEps:
             while (result[0] == 0) and deps >= case.MinEps:
@@ -76,7 +78,7 @@ def compute_line_norm(case, display=True):
                 count_fail = 0
                 resultnorm.append(xp.concatenate((epsilon, case.norms(h_, case.r)), axis=None))
                 if display:
-                    print('\033[90m        epsilon={:.6f}    norm_{:d}={:.3e} \033[00m'.format(epsilon, case.r, case.norms(h_, case.r)[0]))
+                    print('\033[90m        epsilon={:.6f}    norm_{:d}={:.3e}    (for L={:d})\033[00m'.format(epsilon, case.r, case.norms(h_, case.r)[0], h_.shape[0]))
                 save_data('line_norm', xp.array(resultnorm), timestr, case)
         if result[0] == 0:
             count_fail += 1
