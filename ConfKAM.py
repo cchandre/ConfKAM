@@ -69,21 +69,22 @@ class ConfKAM:
 		fft_h = self.fft_h(h)
 		arg_v = (self.phi + xp.tensordot(self.Omega, h, axes=0)) % (2.0 * xp.pi)
 		fft_l = 1j * self.Omega_nu * fft_h
-		l = 1.0 + ifftn(fft_l).real
+		fft_l[self.zero_] = self.rescale_fft
+		l = ifftn(fft_l).real
 		epsilon = ifftn(self.lk * fft_h).real + self.Dv(arg_v, eps, self.Omega) + lam
 		fft_leps = fftn(l * epsilon)
 		delta = - fft_leps[self.zero_].real / self.rescale_fft
 		w = ifftn((delta * fft_l + fft_leps) * self.sml_div).real
-		del fft_l, fft_leps, epsilon, arg_v, fft_h
-		gc.collect()
+		#del fft_l, fft_leps, epsilon, arg_v, fft_h
+		#gc.collect()
 		fft_wll = fftn(w / (l ** 2))
 		fft_ill = fftn(1.0 / (l ** 2))
 		w0 = - fft_wll[self.zero_].real / fft_ill[self.zero_].real
 		beta = ifftn((fft_wll + w0 * fft_ill) * self.sml_div.conj()).real
 		fft_h = self.fft_h(h + beta * l - xp.mean(beta * l) * l)
 		lam_ = lam + delta
-		del beta, l, fft_wll, fft_ill, w
-		gc.collect()
+		#del beta, l, fft_wll, fft_ill, w
+		#gc.collect()
 		tail_norm = xp.abs(fft_h[self.tail_indx]).sum() / self.rescale_fft
 		if self.AdaptSize and (tail_norm >= self.Threshold) and (h.shape[0] < self.Lmax):
 			self.set_var(2 * h.shape[0])
