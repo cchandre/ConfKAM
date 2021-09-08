@@ -5,7 +5,7 @@ from scipy.optimize import root
 import matplotlib.pyplot as plt
 from ConfKAM_modules import compute_line_norm, compute_region
 from ConfKAM_dict import dict
-import gc
+#import gc
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -92,6 +92,8 @@ class ConfKAM:
 		h_ = ifftn(fft_h).real
 		arg_v = (self.phi + xp.tensordot(self.Omega, h_, axes=0)) % (2.0 * xp.pi)
 		err = xp.abs(ifftn(self.lk * fft_h).real + self.Dv(arg_v, eps, self.Omega) + lam_).max()
+		if self.AdaptSize and (tail_norm >= self.Threshold) and (h.shape[0] >= self.Lmax):
+			err = self.TolMax ** 2
 		if self.MonitorGrad:
 			dh_ = self.id + xp.tensordot(self.Omega, xp.gradient(h_, 2.0 * xp.pi / self.Precision(h_.shape[0])), axes=0)
 			det_h_ = xp.abs(LA.det(xp.moveaxis(dh_, [0, 1], [-2, -1]))).min()
