@@ -7,36 +7,38 @@ import numpy as xp
 #Method = 'region'
 Method = 'line_norm'
 Nxy = 100
-r = 4
+r = 6
 
-omega0 = [(xp.sqrt(5) - 1) / 2, -1]
-Omega = [1, 0]
-Dv = lambda phi, eps, omega: - omega[0] * eps[0] * xp.sin(phi[0]) - eps[1] * (omega[0] + omega[1]) * xp.sin(phi[0] + phi[1])
-CoordRegion = [[0.0, 0.35], [0, 0.12]]
-IndxLine = (0, 1)
-PolarAngles = [0.0, xp.pi / 2.0]
-CoordLine = [0.01, 0.028]
-ModesLine = (1, 1)
-DirLine = [1, 1]
-
-# sigma = 1.324717957244746
-# omega0 = [sigma, sigma ** 2, 1]
-# Omega = [1, 1, -1]
-# Dv = lambda phi, eps, omega: - omega[0] * eps[0] * xp.sin(phi[0]) - omega[1] * eps[1] * xp.sin(phi[1]) - omega[2] * eps[2] * xp.sin(phi[2])
-# CoordRegion = [[0.0, 0.15], [0.0,  0.40], [0.1, 0.1]]
+## 2D -- golden mean
+# omega0 = [(xp.sqrt(5) - 1) / 2, -1]
+# Omega = [1, 0]
+# Dv = lambda phi, eps, omega: - omega[0] * eps[0] * xp.sin(phi[0]) - eps[1] * (omega[0] + omega[1]) * xp.sin(phi[0] + phi[1])
+# CoordRegion = [[0.0, 0.35], [0, 0.12]]
 # IndxLine = (0, 1)
 # PolarAngles = [0.0, xp.pi / 2.0]
-# CoordLine = [0.0, 0.05]
-# ModesLine = (1, 1, 0)
-# DirLine = [1, 5, 0.1]
+# CoordLine = [0.01, 0.028]
+# ModesLine = (1, 1)
+# DirLine = [1, 1]
+
+## 3D -- spiral mean
+sigma = 1.324717957244746
+omega0 = [sigma, sigma ** 2, 1]
+Omega = [1, 1, -1]
+Dv = lambda phi, eps, omega: - omega[0] * eps[0] * xp.sin(phi[0]) - omega[1] * eps[1] * xp.sin(phi[1]) - omega[2] * eps[2] * xp.sin(phi[2])
+CoordRegion = [[0.0, 0.15], [0.0,  0.40], [0.1, 0.1]]
+IndxLine = (0, 1)
+PolarAngles = [0.0, xp.pi / 2.0]
+CoordLine = [0.0, 0.05]
+ModesLine = (1, 1, 0)
+DirLine = [1, 5, 0.1]
 
 AdaptSize = True
 Lmin = 2 ** 6
-Lmax = 2 ** 13
+Lmax = 2 ** 8
 
 TolMax = 1e+5       # recommended: 1e+5
-TolMin = 1e-8       # recommended: 1e-8 (2D), 1e-6 (3D)
-Threshold = 1e-10   # recommended: 1e-10 (2D), 1e-8 (3D)
+TolMin = 1e-8       # recommended: 1e-8
+Threshold = 1e-10   # recommended: 1e-10
 MaxIter = 100       # recommended: 100
 
 Type = 'cartesian'

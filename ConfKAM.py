@@ -72,20 +72,19 @@ class ConfKAM:
 		fft_l[self.zero_] = self.rescale_fft
 		l = ifftn(fft_l).real
 		epsilon = ifftn(self.lk * fft_h).real + self.Dv(arg_v, eps, self.Omega) + lam
-		fft_leps = fftn(l * epsilon)
+		fft_leps = self.fft_h(l * epsilon, setzero=False)
 		delta = - fft_leps[self.zero_].real / self.rescale_fft
 		w = ifftn((delta * fft_l + fft_leps) * self.sml_div).real
 		#del fft_l, fft_leps, epsilon, arg_v, fft_h
 		#gc.collect()
-		fft_wll = fftn(w / (l ** 2))
-		fft_ill = fftn(1.0 / (l ** 2))
+		fft_wll = self.fft_h(w / (l ** 2), setzero=False)
+		fft_ill = self.fft_h(1.0 / (l ** 2), setzero=False)
 		w0 = - fft_wll[self.zero_].real / fft_ill[self.zero_].real
 		beta = ifftn((fft_wll + w0 * fft_ill) * self.sml_div.conj()).real
 		fft_h = self.fft_h(h + beta * l - xp.mean(beta * l) * l)
 		lam_ = lam + delta
 		#del beta, l, fft_wll, fft_ill, w
 		#gc.collect()
-		#tail_norm = xp.abs(fft_h[self.tail_indx]).sum() / self.rescale_fft
 		tail_norm = xp.abs(fft_h[self.tail_indx]).max() / self.rescale_fft
 		if self.AdaptSize and (tail_norm >= self.Threshold) and (h.shape[0] < self.Lmax):
 			self.set_var(2 * h.shape[0])
@@ -103,9 +102,10 @@ class ConfKAM:
 				print('\033[31m        warning: non-invertibility...\033[00m')
 		return h_, lam_, err
 
-	def fft_h(self, h):
+	def fft_h(self, h, setzero=True):
 		fft_h = fftn(h)
-		fft_h[self.zero_] = 0.0
+		if setzero:
+			fft_h[self.zero_] = 0.0
 		fft_h[xp.abs(fft_h) <= self.Threshold * xp.abs(fft_h).max()] = 0.0
 		return fft_h
 
