@@ -4,9 +4,9 @@
 
 import numpy as xp
 
-#Method = 'region'
-Method = 'line_norm'
-Nxy = 100
+Method = 'region'
+#Method = 'line_norm'
+Nxy = 512
 r = 6
 
 ## 2D -- golden mean
@@ -45,14 +45,14 @@ Type = 'cartesian'
 ChoiceInitial = 'continuation'
 MethodInitial = 'one_step'
 
-AdaptEps = True
+AdaptEps = False
 MinEps = 1e-6       # recommended: 1e-6
 MonitorGrad = False
 
 Precision = 64
-SaveData = False
+SaveData = True
 PlotResults = False
-Parallelization = (False, 4)
+Parallelization = (True, 64)
 
 ########################################################################################################################
 ##                                                DO NOT EDIT BELOW                                                   ##
