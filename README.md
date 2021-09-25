@@ -8,7 +8,7 @@
 
 Once [`ConfKAM_dict.py`](https://github.com/cchandre/ConfKAM/blob/main/ConfKAM_dict.py) has been edited with the relevant parameters, run the file as 
 ```sh
-python3.8 ConfKAM.py
+python3 ConfKAM.py
 ```
 
 ___
