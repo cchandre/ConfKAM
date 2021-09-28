@@ -54,4 +54,16 @@ ___
 - *Parallelization*: tuple (boolean, int); True for parallelization, int is the number of cores to be used (set int='all' for all of the cores)
 ####
 ---
+Reference: A.P Bustamante, C. Chandre, *Numerical computation of critical surfaces for the breakup of invariant tori in Hamiltonian systems*, [arXiv:2109.12235](https://arxiv.org/abs/2109.12235)
+```bibtex
+@misc{bustamante2021numerical,
+      title={Numerical computation of critical surfaces for the breakup of invariant tori in Hamiltonian systems}, 
+      author={Adrian P. Bustamante and Cristel Chandre},
+      year={2021},
+      eprint={2109.12235},
+      archivePrefix={arXiv},
+      primaryClass={math.DS}
+}
+```
+
 For more information: <cristel.chandre@univ-amu.fr>
