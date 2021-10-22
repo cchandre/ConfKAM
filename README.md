@@ -1,4 +1,4 @@
-# KAM in configuration space (ConfKAM) for invariant tori in Hamiltonian systems
+# KAM in configuration space for invariant tori in Hamiltonian systems
 
 - [`ConfKAM_dict.py`](https://github.com/cchandre/ConfKAM/blob/main/ConfKAM_dict.py): to be edited to change the parameters of the ConfKAM computation (see below for a dictionary of parameters)
 
