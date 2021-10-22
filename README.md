@@ -18,8 +18,8 @@ ___
 - *Nxy*: integer; number of points along each line in computations 
 - *r*: integer; order of the Sobolev norm used in `compute_line_norm()`                                        
 ####                                                                                                   
-- *omega0*: array of *n* floats; frequency vector of the invariant torus                                
-- *Omega*: array of *n* floats; vector defining the perturbation in actions                             
+- *omega0*: array of *n* floats; frequency vector **&omega;** of the invariant torus                                
+- *Omega*: array of *n* floats; vector **&Omega;** defining the perturbation in actions                             
 - *Dv*: function; derivative of the *n*-d potential along a line                                               
 - *CoordRegion*: array of floats; min and max values of the amplitudes for each mode of the potential (see *Dv*); used in `compute_region()`
 - *IndxLine*: tuple of integers; indices of the modes to be varied in `compute_region()`                                        
