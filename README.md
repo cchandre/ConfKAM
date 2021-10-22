@@ -31,13 +31,13 @@ ___
 ####                                                                                           
                                          
 ####                                                                                                           
-- *AdaptSize*: boolean; if True, changes the dimension of arrays depending on the tail of the FFT of *h*(*psi*)      
-- *Lmin*: integer; minimum and default value of the dimension of arrays for *h*(*psi*)                           
-- *Lmax*: integer; maximum value of the dimension of arrays for *h*(*psi*) if *AdaptSize* is True                   
+- *AdaptSize*: boolean; if True, changes the dimension of arrays depending on the tail of the FFT of *h*(*&psi;*)      
+- *Lmin*: integer; minimum and default value of the dimension of arrays for *h*(*&psi;*)                           
+- *Lmax*: integer; maximum value of the dimension of arrays for *h*(&psi;) if *AdaptSize* is True                   
 ####                                                                                                         
 - *TolMax*: float; value of norm for divergence                                                      
 - *TolMin*: float; value of norm for convergence                                                           
-- *Threshold*: float; threshold value for truncating Fourier series of *h*(*psi*)                                   
+- *Threshold*: float; threshold value for truncating Fourier series of *h*(*&psi;*)                                   
 - *MaxIter*: integer; maximum number of iterations for the Newton method                                      
 ####                                                                                                         
 - *Type*: 'cartesian', 'polar'; type of computation for 2d plots                                             
@@ -46,7 +46,7 @@ ___
 ####                                                                                                       
 - *AdaptEps*: boolean; if True adapt the increment of eps in `compute_line_norm()`                                   
 - *MinEps*: float; minimum value of the increment of eps if *AdaptEps*=True                               
-- *MonitorGrad*: boolean; if True, monitors the gradient of *h*(*psi*)                                      
+- *MonitorGrad*: boolean; if True, monitors the gradient of *h*(*&psi;*)                                      
 ####                                                                                 
 - *Precision*: 32, 64 or 128; precision of calculations (default=64)                  
 - *SaveData*: boolean; if True, the results are saved in a `.mat` file               
