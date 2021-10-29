@@ -66,4 +66,4 @@ Reference: A.P Bustamante, C. Chandre, *Numerical computation of critical surfac
 }
 ```
 
-For more information: <cristel.chandre@univ-amu.fr>
+For more information: <cristel.chandre@cnrs.fr>
