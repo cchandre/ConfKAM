@@ -126,7 +126,7 @@ class ConfKAM:
 			dh_ = self.id + xp.tensordot(self.Omega, xp.gradient(h_, 2.0 * xp.pi / self.Precision(h_.shape[0])), axes=0)
 			det_h_ = xp.abs(LA.det(xp.moveaxis(dh_, [0, 1], [-2, -1]))).min()
 			if det_h_ <= self.TolMin:
-				print('\033[31m        warning: non-invertibility...\033[00m')
+				print('\033[31m        Warning: non-invertibility...\033[00m')
 		return h_, lam_, err
 
 	def fft_h(self, h, setzero=True):
